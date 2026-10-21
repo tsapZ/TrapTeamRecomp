@@ -54,3 +54,11 @@ Updated at the end of every session. Only record what a build actually did.
   watch opens the menu, but for player 1: the variable doesn't say whose it is, and both players'
   variables point to the same state object. Nothing near it names the player (snapshot at player
   2's prompt); still to find, e.g. the player object the state machine runs for.
+- **Native 3D picture, experimental** (src/hooks/scene_size_hook.cpp, `scene_size`, Graphics page,
+  off by default): the 360 draws the 3D scene at 1040x620 (mainScene in renderer/tfbRenderer.igx)
+  and stretches it to 720p. SwapForceRecomp's hook, the same render code: the target size function
+  (0x8243F650) and the three EDRAM places (planning heap, tiling decision, depth base) found in a
+  dump of this game's code by their instructions. With it on the scene is drawn at 1264x704 with the
+  SDK's 4096-tile EDRAM (D3D12). Checked by script in Chapter 1: the target goes 1040x620 ->
+  1264x704, the G-buffer pass (2816 tiles) goes untiled, the scene draws right, the edges about 12 %
+  sharper (mean gradient of the same frame), no crash.
