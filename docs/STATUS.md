@@ -15,7 +15,7 @@ Updated at the end of every session. Only record what a build actually did.
 | Logo movies | skipped (`skip_intro`, on): the title screen after about 15 s; the opening movie optional (`skip_opening_movie`, off) |
 | In-game | ✅ Chapter 1 (Sprudelquell) loads, the pause menu opens, the cutscene plays |
 | Portal | ✅ emulated: the game asks "Spieler 1: Setze einen Skylander auf das Traptanium-Portal", a Spyro's Adventure figure put on by script (Chop Chop) gets its intro and plays with the HUD |
-| Portal menu | ✅ opens by itself at the game's "Setze einen Skylander" prompt (for the first player without a Skylander) and shows the cards of the game's collection screens for every Skylander, Mini, trap and magic item, each figure's own variant where the game has one; titles and text in the game's own fonts, the element symbols (Light and Dark too) and the gold coin from the game |
+| Portal menu | ✅ opens by itself at the game's "Setze einen Skylander" prompt (for the first player without a Skylander) and shows the cards of the game's collection screens for every Skylander, Mini, trap and magic item, each figure's own variant where the game has one; titles and text in the game's own fonts, the element symbols (Light and Dark too) and the gold coin from the game; the details view shows the hat (its name in the menu's language, icon and bonuses with the stats screen's symbols) and every Skylander's upgrade tree with the game's pictures and prices, magic items have their German names |
 
 ## 2026-10-21: session log
 
@@ -125,3 +125,11 @@ Updated at the end of every session. Only record what a build actually did.
   table), SuperChargers' and Imaginators' toy data have it at +0x0C. Checked by script: the Trap
   Team tab shows Blastermind, Enigma, Cobra Cadabra, Deja Vu and Spry under Magic, Krypt King,
   Short Cut, Bat Spin, Funny Bone and Hijinx under Undead, and the Light and Dark symbols.
+
+## 2026-10-22: session log (night)
+
+- **Hats in the details view** (src/game/toy_hats.cpp, as Giants' menu): the names from permanent/global.bld's "HatName(kkk)" texts in ENGLISH.pak and GERMAN.pak (kkk is the hat number minus one up to 95 and the number itself from 97 on, checked against SuperChargers' hat table: all 245 names agree), the bonuses from misc/StoreItem_Hat_kkk.bld (72 hats), the icons from the .arc next to it (35), the stat symbols from character/UI_StatsScreen_Extra.bld. Checked on a copy of a Chop Chop with the flower hat: "Blumenhut", its icon, "+2 Kritischer Treffer", "+2 Rüstung" with their symbols.
+- **Upgrades in the details view** (src/game/toy_upgrades.cpp, ported from Giants, and src/game/game_text.cpp for the scenes' texts): 87 Skylanders from their character archives, the Wow Pow by the figure's year (upgrade 10 + the year), this game's button glyphs ("]" X, "{" Y, "}" B). Checked on the Chop Chop copy: the whole tree with the pictures, the German path names and the bought upgrades ticked. Swap Force's halves don't get theirs yet (#7).
+- **Magic items' German names** from rom/item (11 matched to the catalog by their English name; the newer items' archives have no English text to match).
+- **Portal library** (cbc71c6, 0eb2564): the cards say "Fahrzeug", "Sensei", "Falle", "Mini-Skylander", "Serie 2" instead of the catalog's English plurals; a plain hat symbol where a game has no hat picture.
+- **New issues** for what the other games' menus have and this one doesn't yet: #5 bloom and motion blur options, #6 item changes waiting for the figure change, #7 the Swap Force halves' upgrades, #8 the game's controller picture.
