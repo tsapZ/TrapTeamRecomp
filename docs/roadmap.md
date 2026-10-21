@@ -6,8 +6,8 @@ Trap Team Recompiled, the fourth Skylanders game, built the same way as the othe
 | Phase | State | What |
 |---|---|---|
 | 0 Repository and scaffold | 🟡 in progress | scaffold from GiantsRecomp, disc extracted, xex pinned |
-| 1 Recompile and boot | 🟡 title screen | codegen, first boot, menus and the first level |
-| 1.1 Portal | ⬜ | emulated portal and the portal menu; the menu opening by itself at the game's prompt |
+| 1 Recompile and boot | ✅ | codegen, first boot, menus and the first level |
+| 1.1 Portal | 🟡 emulated portal works | emulated portal and the portal menu; the menu opening by itself at the game's prompt |
 | 2 In-game | ⬜ | the first levels playable, saves, figures, intro skip |
 | 3 Polish | ⬜ | the game's pictures and names in the menus, high frame rate, resolution, ultrawide |
 
@@ -15,6 +15,6 @@ Trap Team Recompiled, the fourth Skylanders game, built the same way as the othe
 
 | When | What | Who |
 |---|---|---|
-| **Now** | The menus behind the title and the first level | me |
+| **Now** | The portal menu opening by itself at the prompt, logo movie skip | me |
 | Next | Portal and portal menu (Phase 1.1), intro skip | me |
 | Later | The game's own pictures and names (its archive format) | me |

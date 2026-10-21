@@ -11,6 +11,9 @@ Updated at the end of every session. Only record what a build actually did.
 | SDK | our fork `tsapZ/rexglue-sdk`, branch `skylanders`, shared with the other games |
 | Codegen | runs without any `config/default.toml` entry; the build links |
 | Boot | ✅ to the title screen on the first try: the copyright screen, the Activision and Toys for Bob logo movies, then "Drücke A zum Starten" (German by language "auto") |
+| Menus | ✅ autosave notice, save slot, difficulty, "Spiel wählen" (Story); Start skips the opening movie |
+| In-game | ✅ Chapter 1 (Sprudelquell) loads, the pause menu opens, the cutscene plays |
+| Portal | ✅ emulated: the game asks "Spieler 1: Setze einen Skylander auf das Traptanium-Portal", a Spyro's Adventure figure put on by script (Chop Chop) gets its intro and plays with the HUD. The portal menu doesn't open by itself yet (no prompt watch for this game) |
 
 ## 2026-10-21: session log
 
@@ -18,4 +21,5 @@ Updated at the end of every session. Only record what a build actually did.
   (Skylanders: Core of Light).
 - **Scaffold:** GiantsRecomp's tracked files, renamed; its Giants-specific parts left out.
 - **Disc:** the same layout as Giants (`character\`, `item\`, `level\`, `misc\`, `movies\`, `outfit\`, `permanent\`, `.arc` / `.bld`), but the archives are IGA version 11 (Giants: 8), so Giants' readers for portraits, upgrades, hats and item names are left out until they read this version.
-- **First codegen and boot:** no codegen fixes needed so far (Giants needed four Bink jump tables); the title screen comes up after the logo movies. Not tried yet: the menus behind the title, a level, the portal.
+- **First codegen and boot:** no codegen fixes needed so far (Giants needed four Bink jump tables); the title screen comes up after the logo movies.
+- **First level with a figure** (script, test copy): the menus behind the title, the opening movie (Start skips it), Chapter 1 and the portal prompt; Chop Chop put on the emulated portal comes in with his intro and plays. Next: the menu opening by itself at the prompt (the game's prompt object), the logo and opening movie skip, the game's pictures (IGA v11).
