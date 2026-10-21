@@ -2,11 +2,8 @@
 // (GiantsRecomp src/game/toy_hats.cpp; this disc has the same layout in IGA 11 / IGZ 8). Read
 // 2026-10-22, after the owner saw only a hat's number in the later games' menus:
 //
-// - Text: a scene (an archive's level.bld) has a StringInfo object per text it uses, +0x08 its key;
-//   ENGLISH.pak and GERMAN.pak next to it hold one LanguagePackInfo each (+0x14 the language, 6
-//   English, 9 German; +0x18 a memory reference to the texts, UTF-16BE, NUL-separated, in the
-//   order of the scene's StringInfo objects). Every archive here has both packs, so the menu
-//   shows the hats in its own language.
+// - Text: game_text.cpp has how a scene's texts are stored. Every archive here has ENGLISH.pak
+//   and GERMAN.pak, so both are read and the menu shows the hats in its own language.
 // - Names: permanent/global.bld's texts "HatName(kkk)", 254 of them ("HatName(000)" "Combat Hat"
 //   / "Kampfhut"). kkk is the hat's number minus one up to 95, and the number itself from 97 on:
 //   "HatName(096)" is empty and the list goes on with the same numbers as the hats ("HatName(097)"
@@ -38,6 +35,7 @@
 
 #include "game/alchemy/iga11_archive.h"
 #include "game/alchemy/igz8_file.h"
+#include "game/game_text.h"
 #include "game/xenos_dxt.h"
 #include "portal_rex/menu_draw.h"
 
@@ -60,8 +58,6 @@ constexpr char kGermanPack[] = "GERMAN.pak";
 constexpr std::string_view kIconPath = "/haticons/";
 constexpr std::string_view kHatKey = "hat:";
 constexpr std::string_view kDescPrefix = "Hat_Desc_";
-constexpr uint32_t kKeyField = 0x08;    // StringInfo
-constexpr uint32_t kTextsField = 0x18;  // LanguagePackInfo
 constexpr uint32_t kLastIndex = 253;    // "HatName(253)"
 constexpr uint32_t kGapIndex = 96;      // "HatName(096)", empty
 
@@ -86,73 +82,6 @@ std::unordered_map<uint32_t, std::shared_ptr<const HatInfo>> g_infos;  // hat <<
 
 // A hat's number for a text index kkk, and back.
 uint32_t HatNumber(uint32_t index) { return index < kGapIndex ? index + 1 : index; }
-
-std::optional<Igz8File> ParseEntry(Iga11Archive& archive, size_t index) {
-  Iga11Archive* a = &archive;
-  return Igz8File::Parse(
-      [a, index](uint64_t offset, size_t size, uint8_t* out) { return a->Read(index, offset, size, out); },
-      archive.length(index));
-}
-
-void AppendUtf8(std::string& out, uint32_t c) {
-  if (c < 0x80) {
-    out.push_back(char(c));
-  } else if (c < 0x800) {
-    out.push_back(char(0xC0 | (c >> 6)));
-    out.push_back(char(0x80 | (c & 0x3F)));
-  } else if (c < 0x10000) {
-    out.push_back(char(0xE0 | (c >> 12)));
-    out.push_back(char(0x80 | ((c >> 6) & 0x3F)));
-    out.push_back(char(0x80 | (c & 0x3F)));
-  } else {
-    out.push_back(char(0xF0 | (c >> 18)));
-    out.push_back(char(0x80 | ((c >> 12) & 0x3F)));
-    out.push_back(char(0x80 | ((c >> 6) & 0x3F)));
-    out.push_back(char(0x80 | (c & 0x3F)));
-  }
-}
-
-// The UTF-16BE texts, NUL-separated, as UTF-8.
-std::vector<std::string> SplitTexts(const std::vector<uint8_t>& data) {
-  std::vector<std::string> out(1);
-  for (size_t i = 0; i + 1 < data.size(); i += 2) {
-    uint32_t c = (uint32_t(data[i]) << 8) | data[i + 1];
-    if (!c) {
-      out.emplace_back();
-      continue;
-    }
-    if (c >= 0xD800 && c < 0xDC00 && i + 3 < data.size()) {
-      const uint32_t low = (uint32_t(data[i + 2]) << 8) | data[i + 3];
-      if (low >= 0xDC00 && low < 0xE000) {
-        c = 0x10000 + ((c - 0xD800) << 10) + (low - 0xDC00);
-        i += 2;
-      }
-    }
-    AppendUtf8(out.back(), c);
-  }
-  return out;
-}
-
-// The scene's texts in one language pack: (key, text) in the scene's order.
-std::vector<std::pair<std::string, std::string>> SceneTexts(Iga11Archive& archive, const char* pack) {
-  std::vector<std::pair<std::string, std::string>> out;
-  const auto scene_index = archive.Find(kScene);
-  const auto pack_index = archive.Find(pack);
-  if (!scene_index || !pack_index) return out;
-  auto scene = ParseEntry(archive, *scene_index);
-  auto texts_file = ParseEntry(archive, *pack_index);
-  if (!scene || !texts_file) return out;
-  const auto info = texts_file->Objects("LanguagePackInfo");
-  if (info.empty()) return out;
-  const auto data = texts_file->MemoryField(info.front(), kTextsField);
-  if (!data) return out;
-  std::vector<std::string> texts = SplitTexts(*data);
-  const auto keys = scene->Objects("StringInfo");
-  for (size_t i = 0; i < keys.size() && i < texts.size(); ++i) {
-    out.emplace_back(scene->StringField(keys[i], kKeyField), std::move(texts[i]));
-  }
-  return out;
-}
 
 // "+5 Armor\n+5 Elemental Power" -> the two bonuses.
 std::vector<HatStat> ParseBonuses(const std::string& text) {
@@ -219,7 +148,7 @@ void Load(std::filesystem::path rom) {
   static const std::regex kName(R"(^HatName\((\d+)\)$)");
   if (auto global = Iga11Archive::Open(rom / kGlobalArchive)) {
     for (int german = 0; german < 2; ++german) {
-      for (auto& [key, text] : SceneTexts(*global, german ? kGermanPack : kEnglishPack)) {
+      for (auto& [key, text] : ReadSceneTexts(*global, german ? kGermanPack : kEnglishPack)) {
         std::smatch m;
         if (text.empty() || !std::regex_match(key, m, kName)) continue;
         const uint32_t index = uint32_t(std::stoul(m[1]));
@@ -237,7 +166,7 @@ void Load(std::filesystem::path rom) {
     if (!texts) continue;
     Hat& hat = hats[uint16_t(HatNumber(index))];
     for (int german = 0; german < 2; ++german) {
-      for (const auto& [key, text] : SceneTexts(*texts, german ? kGermanPack : kEnglishPack)) {
+      for (const auto& [key, text] : ReadSceneTexts(*texts, german ? kGermanPack : kEnglishPack)) {
         if (key.starts_with(kDescPrefix)) hat.stats[german] = ParseBonuses(text);
       }
     }

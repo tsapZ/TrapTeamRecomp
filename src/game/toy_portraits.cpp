@@ -45,6 +45,7 @@
 #include "toy_portraits.h"
 
 #include "toy_hats.h"
+#include "toy_upgrades.h"
 
 #include <algorithm>
 #include <cctype>
@@ -440,6 +441,7 @@ void InstallToyPortraits(const std::filesystem::path& rom_dir) {
       [](uint16_t id, uint16_t variant) { return Lookup(id, variant); });
   skylanders::SetArtImageProvider([](const std::string& key) -> std::shared_ptr<const FigureImage> {
     if (auto hat = HatImage(key)) return hat;  // "hat:<number>", "stat:<name>" (toy_hats.cpp)
+    if (key.starts_with("upgrade:")) return UpgradeImage(key);  // toy_upgrades.cpp
     std::lock_guard<std::mutex> lock(g_mutex);
     auto it = g_art.find(key);
     return it == g_art.end() ? nullptr : it->second;
