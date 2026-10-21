@@ -6,6 +6,17 @@
 #
 # Entries are added as codegen and the runtime report them.
 
+# 0x821A3DA0 is in BinkOpen (Bink 2), right after it reads the 44-byte movie header into r1+112
+# (li r6,44; addi r5,r1,112; bctrl) and just before the signature compares ("KB2f" and the later
+# ones, lis r11,0x6632 / ori 0x424B). Found in the generated code by the same shape as GiantsRecomp's
+# hook (there at r1+96). src/hooks/intro_skip_hook.cpp cuts the logo movies (skip_intro, on) and
+# optionally the opening movie (skip_opening_movie, off) by setting their frame count to 1; other
+# movies pass unchanged.
+[[midasm_hook]]
+address = 0x821A3DA0
+name = "BinkHeaderLoaded"
+registers = ["r1"]
+
 [functions]
 # Function starts the analyzer put one instruction late: it reached each function through a branch
 # to its second instruction, while the real start is only in a pointer table (a vtable). Calling
