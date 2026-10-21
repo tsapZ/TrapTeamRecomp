@@ -5,3 +5,27 @@
 # SSARecomp, GiantsRecomp) apply to their own executables only and are checked against this one.
 #
 # Entries are added as codegen and the runtime report them.
+
+[functions]
+# Function starts the analyzer put one instruction late: it reached each function through a branch
+# to its second instruction, while the real start is only in a pointer table (a vtable). Calling
+# one ends the game with "Call to invalid or unregistered function at guest address ...", as
+# SuperChargers and Imaginators did at boot (2026-10-21). Found in this game's code (a dump of
+# guest memory with the input script's `save`): right after a `blr`, an instruction that is no
+# known start, followed by one that is. Not reached yet in what was played; registered so they
+# work when they are. A start that was in fact the second half of the function before only splits
+# it, which the generated code handles as a tail call. No sizes given, the analyzer finds the ends.
+0x821E2A2C = {}
+0x821E2A6C = {}
+0x8222918C = {}
+0x823D8288 = {}
+0x825E4DA0 = {}
+0x8261749C = {}
+0x82637D10 = {}
+0x82657ED0 = {}
+0x8266AC38 = {}
+0x826885A0 = {}
+0x826F3C88 = {}
+0x827197FC = {}
+0x827198DC = {}
+0x827D065C = {}
