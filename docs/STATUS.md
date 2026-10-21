@@ -62,3 +62,12 @@ Updated at the end of every session. Only record what a build actually did.
   SDK's 4096-tile EDRAM (D3D12). Checked by script in Chapter 1: the target goes 1040x620 ->
   1264x704, the G-buffer pass (2816 tiles) goes untiled, the scene draws right, the edges about 12 %
   sharper (mean gradient of the same frame), no crash.
+- **Ultrawide** (src/hooks/ultrawide_hook.cpp, `ultrawide_fov`, on): a window wider than 16:9
+  (`resolution`) shows more to the sides instead of black bars, as in SwapForceRecomp. The
+  perspective builder (sub_823B1AF0) found by Swap Force's instructions in a dump of this game's
+  code; the scene camera's call with a probe, a hook at each of the builder's callers logging its
+  arguments in play: 0x8230F784 and 0x8230F7F0 (the camera builds its projection twice a frame) runs
+  every frame with 16:9 and the camera's horizontal FOV. The hook widens the aspect and the FOV
+  there, keeping the vertical FOV; the app turns the letterbox off. Checked by script: Chapter 1 in
+  a 2560x1080 window: the proportions right (the posts and the figure as in 16:9), more of the level
+  at both sides; the HUD stretched.
