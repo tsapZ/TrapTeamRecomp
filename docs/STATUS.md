@@ -15,7 +15,7 @@ Updated at the end of every session. Only record what a build actually did.
 | Logo movies | skipped (`skip_intro`, on): the title screen after about 15 s; the opening movie optional (`skip_opening_movie`, off) |
 | In-game | ✅ Chapter 1 (Sprudelquell) loads, the pause menu opens, the cutscene plays |
 | Portal | ✅ emulated: the game asks "Spieler 1: Setze einen Skylander auf das Traptanium-Portal", a Spyro's Adventure figure put on by script (Chop Chop) gets its intro and plays with the HUD |
-| Portal menu | ✅ opens by itself at the game's "Setze einen Skylander" prompt (player 1) and shows the game's own HUD portraits for every Skylander and Mini, each figure's variant where the game has one (Series 2, LightCore, Legendary, Eon's Elite, ...) |
+| Portal menu | ✅ opens by itself at the game's "Setze einen Skylander" prompt (for the first player without a Skylander) and shows the cards of the game's collection screens for every Skylander, Mini, trap and magic item, each figure's own variant where the game has one; titles and text in the game's own fonts |
 
 ## 2026-10-21: session log
 
@@ -81,3 +81,22 @@ Updated at the end of every session. Only record what a build actually did.
   Game speed: with the same script (2 s of stick forward), the figure stands on the same spot at
   144 as at 30 FPS (screenshots); the figure's arrival (portal state "Clear" to play) took 6.8 s at
   30 and 5.7 s at 144, as it includes loading the figure. No hook needed, as in Giants.
+
+## 2026-10-21: session log (afternoon)
+
+- **The collection's cards in the portal menu** (src/game/toy_portraits.cpp): the HUD portraits
+  (214x107, cut off at the sides) looked poor next to the other games' pictures. The game's
+  collection screens have their own: rom/misc/UI_Collection_Champions.arc (Skylanders, Minis, magic
+  items) and rom/misc/ui_collection_traps.arc (traps), 347 textures of 128x128 DXT5 with the card's
+  frame, each in a folder named after its figure ("519_12288_triggersnappy.png": id 519, variant
+  12288, the catalog's numbers). 345 of the catalog's 434 figures up to this game have a card of
+  their own variant, all but 34 one of their id (the nearest variant is taken); Swap Force's bottom
+  halves show their top's card. Read in about 55 ms at start-up; the HUD portraits stay as the
+  fallback for an id without a card. Checked by script: every tab (Spyro's Adventure, Swap Force,
+  Trap Team, Magische Objekte) shows the cards, upright.
+- **The game's fonts in the portal menu** (src/game/game_fonts.cpp, #3): the text in font_001
+  (permanent/bootstrap.bld), the titles in the bold font_002 (permanent/global.bld), both
+  igBitmapFont with the layout of the other games' fonts. Every cell has a 4-pixel padding on each
+  side that the stored advance includes; measured against the title screen's "Starten", the game
+  draws each advance 8 pixels shorter, and so does the menu now (with the stored advance the
+  letters stood visibly too far apart).

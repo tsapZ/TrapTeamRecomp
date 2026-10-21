@@ -46,6 +46,7 @@ set(TRAPTEAMRECOMP_SOURCES
     src/game/alchemy/lzma_decoder.cpp
     src/game/kernel_stubs.cpp
     src/game/portal_prompt_watch.cpp
+    src/game/game_fonts.cpp
     src/game/toy_portraits.cpp
     src/game/xenos_dxt.cpp
     src/localization.cpp

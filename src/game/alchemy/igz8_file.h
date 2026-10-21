@@ -52,6 +52,19 @@ class Igz8File {
   // nullopt for an unknown format or pixels that can't be read.
   std::optional<RgbaImage> Decode(const Image& image) const;
 
+  // For other objects (the bitmap font, src/game/game_fonts.cpp): every object of a class, a u32
+  // field, a serialized pointer as a file offset, an image's pixels as stored, and raw bytes.
+  std::vector<uint64_t> Objects(std::string_view type) const;
+  uint32_t Field(uint64_t object, uint32_t offset) const { return Be32(object + offset); }
+  std::optional<uint64_t> Pointer(uint32_t value) const { return Deserialize(value); }
+  struct RawPixels {
+    uint64_t offset = 0;
+    uint32_t size = 0;
+    uint32_t format_hash = 0;  // FNV-1a of the format's name
+  };
+  std::optional<RawPixels> Raw(const Image& image) const;
+  bool Read(uint64_t offset, size_t size, uint8_t* out) const { return reader_(offset, size, out); }
+
  private:
   struct Fixup {
     uint32_t count = 0;

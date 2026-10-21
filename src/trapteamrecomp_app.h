@@ -26,6 +26,7 @@
 #include "dev/input_script.h"
 #include "dev/write_watch.h"
 #include "hooks/ultrawide_hook.h"
+#include "game/game_fonts.h"
 #include "game/portal_prompt_watch.h"
 #include "game/toy_portraits.h"
 #include "dev/gpu_diagnostics.h"
@@ -135,8 +136,8 @@ class TrapteamrecompApp : public rex::ReXApp {
     skylanders::InstallPortal(skylanders::SharedFiguresDir(user_data_root()));
     // A real crash logs where in the game it happened (guest call chain and registers).
     trapteamrecomp::InstallCrashReport(runtime()->memory());
-    // Pictures for the portal menu from the game's own files: the HUD portraits of every
-    // Skylander and Mini, each figure's own variant where the game has one.
+    // Pictures for the portal menu from the game's own files: the cards of its collection
+    // screens (the HUD portraits where there is none), each figure's own variant.
     trapteamrecomp::InstallToyPortraits(game_data_root_);
     // The portal menu opens by itself when the game asks for a Skylander.
     trapteamrecomp::StartPortalPromptWatch(runtime()->memory());
@@ -204,6 +205,8 @@ class TrapteamrecompApp : public rex::ReXApp {
     }
 #endif
     if (font) ImGui::GetIO().FontDefault = font;
+    // The menus' titles and text in the game's own fonts (its bitmap fonts font_002, font_001).
+    skylanders::SetGameFonts(trapteamrecomp::LoadGameFonts(game_data_root_));
     skylanders::AddPortalMenuFonts(atlas);
   }
 

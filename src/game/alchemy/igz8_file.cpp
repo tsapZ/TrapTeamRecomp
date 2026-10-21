@@ -184,6 +184,34 @@ std::vector<Igz8File::Image> Igz8File::Images() const {
   return out;
 }
 
+std::vector<uint64_t> Igz8File::Objects(std::string_view type) const {
+  std::vector<uint64_t> out;
+  for (uint64_t object : ObjectOffsets()) {
+    const uint32_t t = Be32(object);
+    if (t < types_.size() && types_[t] == type) out.push_back(object);
+  }
+  return out;
+}
+
+std::optional<Igz8File::RawPixels> Igz8File::Raw(const Image& image) const {
+  const Fixup* ids = fixup("EXID");
+  const Fixup* handles = fixup("TMHN");
+  if (!ids || !handles) return std::nullopt;
+  const uint32_t format_ref = Be32(image.object + 0x3C);
+  const uint32_t handle = Be32(image.object + 0x48);
+  if (!(format_ref & 0x80000000) || (format_ref & 0x7FFFFFFF) >= ids->count ||
+      handle >= handles->count) {
+    return std::nullopt;
+  }
+  RawPixels raw;
+  raw.format_hash = Be32(ids->start + 8 * uint64_t(format_ref & 0x7FFFFFFF));
+  raw.size = Be32(handles->start + 8 * uint64_t(handle)) & 0x0FFFFFFF;
+  const auto pixels = Deserialize(Be32(handles->start + 8 * uint64_t(handle) + 4));
+  if (!pixels || !raw.size || *pixels + raw.size > length_) return std::nullopt;
+  raw.offset = *pixels;
+  return raw;
+}
+
 std::optional<RgbaImage> Igz8File::Decode(const Image& image) const {
   const Fixup* ids = fixup("EXID");
   const Fixup* handles = fixup("TMHN");

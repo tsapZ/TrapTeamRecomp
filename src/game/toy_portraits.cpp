@@ -1,6 +1,21 @@
-// Pictures of the Skylanders for the portal menu: the portraits the game's HUD shows.
+// Pictures of the Skylanders for the portal menu: the cards of the game's collection screens,
+// else the portraits its HUD shows.
 //
-// Every Skylander has a scene archive of its own, rom/character/NNN_<model>[_<deco>].bld (IGA
+// The cards: rom/misc/UI_Collection_Champions.arc (the Skylanders, Minis and magic items) and
+// rom/misc/ui_collection_traps.arc (the traps), IGA version 11, one IGZ version 8 texture per
+// file, each named after its figure: ".../collection_images/skylander_toys/2014/
+// 2014_skylanders_regular/519_12288_triggersnappy.png/0x3a50f90c.png.igb.tex.igz" is figure id
+// 519, variant 12288 (the portal catalog's numbers), ".../traps/square/216_12291.png/..." a trap.
+// 128x128 DXT5 with the card's frame and background, stored upside down like the portraits.
+// Checked on this disc (2026-10-21) against the catalog of the four games up to this one: 345 of
+// its 434 figures have a card of their own id and variant, all but 34 one of their id. Those 34
+// are 30 of Swap Force's bottom halves (1000 + n), which show their top's card (2000 + n), and
+// four unreleased test figures. Nitro Magna Charge's top is named "2010_9128_..." where the
+// figure says 9218 (kVariantFixes). A figure without a card of its own variant (chase variants,
+// the earlier games' sidekicks) gets the nearest card of its id: the same game first, then the
+// same alternate deco, Series 2 and LightCore.
+//
+// The portraits, for ids without any card: every Skylander has a scene archive of its own, rom/character/NNN_<model>[_<deco>].bld (IGA
 // version 11, iga11_archive.h). NNN is its figure id, the same as the portal catalog's
 // (000_AirDragon is Whirlwind, 0; 2008_HootLoop_Top Hoot Loop's top, 2008; 476_Artichoke Food
 // Fight). Its scene (the archive's level.bld, IGZ version 8, igz8_file.h) holds the HUD portraits
@@ -31,6 +46,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <charconv>
 #include <chrono>
 #include <cstdint>
 #include <memory>
@@ -60,6 +76,20 @@ constexpr std::string_view kMiniPrefix = "2014_mini";
 constexpr std::string_view kVillainPrefix = "2014_ally_";
 constexpr char kCharacterDir[] = "character";
 constexpr char kScene[] = "level.bld";
+constexpr char kMiscDir[] = "misc";
+constexpr const char* kCardArchives[] = {"UI_Collection_Champions.arc", "ui_collection_traps.arc"};
+
+// Swap Force's halves: bottoms 1000 + n, tops 2000 + n.
+constexpr uint16_t kSwapBottoms = 1000;
+constexpr uint16_t kSwapTops = 2000;
+
+// A card whose file name has another variant than its figure.
+struct VariantFix {
+  uint16_t id;
+  uint16_t named;
+  uint16_t variant;
+};
+constexpr VariantFix kVariantFixes[] = {{2010, 9128, 9218}};  // Nitro Magna Charge (top)
 
 // Variant bits of the portal catalog (portal/figure_catalog.h).
 constexpr uint16_t kSeries2 = 0x800;
@@ -104,7 +134,13 @@ struct Portrait {
   std::shared_ptr<const FigureImage> image;
 };
 
+struct Card {
+  uint16_t variant;
+  std::shared_ptr<const FigureImage> image;
+};
+
 std::mutex g_mutex;
+std::unordered_map<uint16_t, std::vector<Card>> g_cards;                  // by figure id
 std::unordered_map<uint16_t, std::vector<Portrait>> g_portraits;           // by figure id
 std::unordered_map<std::string, std::shared_ptr<const FigureImage>> g_minis;  // by picture name
 
@@ -172,8 +208,66 @@ int ReadPortraits(const std::filesystem::path& archive_path, Use use) {
   return count;
 }
 
+// ".../519_12288_triggersnappy.png/0x3a50f90c.png.igb.tex.igz" -> 519, 12288; false for a file
+// whose folder isn't named <id>_<variant>[_<name>].png (square_highlight.png).
+bool CardFigure(std::string_view path, uint16_t* id, uint16_t* variant) {
+  const size_t end = path.rfind('/');
+  if (end == std::string_view::npos || end == 0) return false;
+  const size_t begin = path.rfind('/', end - 1) + 1;  // 0 if there is no other '/'
+  const char* p = path.data() + begin;
+  const char* last = path.data() + end;
+  unsigned a = 0, b = 0;
+  auto r = std::from_chars(p, last, a);
+  if (r.ec != std::errc() || r.ptr == last || *r.ptr != '_') return false;
+  const char* q = r.ptr + 1;
+  r = std::from_chars(q, last, b);
+  if (r.ec != std::errc() || r.ptr == q || r.ptr == last || (*r.ptr != '_' && *r.ptr != '.') ||
+      a > 0xFFFF || b > 0xFFFF) {
+    return false;
+  }
+  *id = uint16_t(a);
+  *variant = uint16_t(b);
+  for (const VariantFix& fix : kVariantFixes) {
+    if (fix.id == *id && fix.named == *variant) *variant = fix.variant;
+  }
+  return true;
+}
+
+// Reads every card of a collection archive.
+int ReadCards(const std::filesystem::path& archive_path) {
+  auto archive = alchemy::Iga11Archive::Open(archive_path);
+  if (!archive) return 0;
+  auto* a = archive.get();
+  int count = 0;
+  for (size_t index = 0; index < archive->size(); ++index) {
+    uint16_t id = 0, variant = 0;
+    if (!CardFigure(archive->name(index), &id, &variant)) continue;
+    auto igz = alchemy::Igz8File::Parse(
+        [a, index](uint64_t offset, size_t size, uint8_t* out) {
+          return a->Read(index, offset, size, out);
+        },
+        archive->length(index));
+    if (!igz) continue;
+    const auto images = igz->Images();
+    if (images.empty()) continue;
+    auto rgba = igz->Decode(images[0]);
+    if (!rgba) continue;
+    FlipVertically(*rgba);  // stored upside down
+    auto image = ToSquareImage(std::move(*rgba));
+    std::lock_guard<std::mutex> lock(g_mutex);
+    g_cards[id].push_back(Card{variant, std::move(image)});
+    ++count;
+  }
+  return count;
+}
+
 void Load(std::filesystem::path rom) {
-  const auto start = Clock::now();
+  auto start = Clock::now();
+  int cards = 0;
+  for (const char* name : kCardArchives) cards += ReadCards(rom / kMiscDir / name);
+  REXLOG_INFO("Toy pictures: {} collection cards in {} ms", cards,
+              std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - start).count());
+  start = Clock::now();
   std::error_code ec;
   int portraits = 0, minis = 0, archives = 0;
   for (const auto& entry : std::filesystem::directory_iterator(rom / kCharacterDir, ec)) {
@@ -220,7 +314,31 @@ std::shared_ptr<const FigureImage> Mini(const std::string& name) {
   return it == g_minis.end() ? nullptr : it->second;
 }
 
+// The card of the figure's own variant, else the nearest of its id; nullptr if its id has none.
+std::shared_ptr<const FigureImage> CardFor(uint16_t id, uint16_t variant) {
+  if (id >= kSwapBottoms && id < kSwapTops) id += kSwapTops - kSwapBottoms;  // a bottom: its top
+  std::lock_guard<std::mutex> lock(g_mutex);
+  auto it = g_cards.find(id);
+  if (it == g_cards.end()) return nullptr;
+  const Card* best = nullptr;
+  int best_score = -1;
+  for (const Card& card : it->second) {
+    if (card.variant == variant) return card.image;
+    int score = 0;
+    if ((card.variant >> kYearShift) == (variant >> kYearShift)) score += 8;
+    if ((card.variant & kAlternateDeco) == (variant & kAlternateDeco)) score += 4;
+    if ((card.variant & kSeries2) == (variant & kSeries2)) score += 2;
+    if ((card.variant & kLightCore) == (variant & kLightCore)) score += 1;
+    if (score > best_score) {
+      best = &card;
+      best_score = score;
+    }
+  }
+  return best ? best->image : nullptr;
+}
+
 std::shared_ptr<const FigureImage> Lookup(uint16_t id, uint16_t variant) {
+  if (auto card = CardFor(id, variant)) return card;
   for (const MiniPicture& m : kMinis) {
     if (m.id != id) continue;
     std::lock_guard<std::mutex> lock(g_mutex);
