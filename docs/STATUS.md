@@ -54,6 +54,11 @@ Updated at the end of every session. Only record what a build actually did.
   watch opens the menu, but for player 1: the variable doesn't say whose it is, and both players'
   variables point to the same state object. Nothing near it names the player (snapshot at player
   2's prompt); still to find, e.g. the player object the state machine runs for.
+  **Solved the same day (#1):** the menu now opens for the first player without a Skylander on the
+  emulated portal (skylanders-portal `AutoOpenPortalMenuForPlayerWithoutFigure`), the order in which
+  the game hands figures to players. Checked by script: player 1 took Double Trouble through the
+  menu at the first prompt; player 2 pressed A to join and the menu came up for player 2, with
+  Double Trouble shown taken by player 1.
 - **Native 3D picture, experimental** (src/hooks/scene_size_hook.cpp, `scene_size`, Graphics page,
   off by default): the 360 draws the 3D scene at 1040x620 (mainScene in renderer/tfbRenderer.igx)
   and stretches it to 720p. SwapForceRecomp's hook, the same render code: the target size function

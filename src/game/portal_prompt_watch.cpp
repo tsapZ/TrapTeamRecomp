@@ -15,7 +15,13 @@
 // The variable only lives while the prompt is up, so it is looked for by a scan of the physical
 // heap (class and name) every half second until it is found, and checked again on every poll.
 // Polling instead of a mid-asm hook keeps the generated code untouched and costs a few guest reads
-// every 30 ms. It only reads. The prompt is taken as player 1's; player 2's is still to be seen.
+// every 30 ms. It only reads.
+//
+// The variable doesn't say whose prompt it is: at player 2's (player 1 playing, player 2 pressing
+// A) the game makes a second one with the same state, and both point to the same state object
+// (2026-10-21). The menu therefore opens for the first player without a Skylander on the emulated
+// portal (skylanders::AutoOpenPortalMenuForPlayerWithoutFigure), the order in which the game itself
+// hands figures to players: player 1 at the first prompt, player 2 while player 1 plays.
 
 #include "portal_prompt_watch.h"
 
@@ -162,8 +168,9 @@ void Watch(rex::memory::Memory* memory) {
       opened = false;
     }
     if (waiting_for && !opened && now - since >= kOpenDelay) {
-      REXLOG_INFO("Portal prompt: the game asks player {} for a Skylander", *waiting_for + 1);
-      skylanders::AutoOpenPortalMenu(*waiting_for);
+      REXLOG_INFO("Portal prompt: the game asks for a Skylander (the menu opens for the first "
+                  "player without one)");
+      skylanders::AutoOpenPortalMenuForPlayerWithoutFigure();
       opened = true;
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(30));
