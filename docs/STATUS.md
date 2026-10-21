@@ -76,6 +76,12 @@ Updated at the end of every session. Only record what a build actually did.
   there, keeping the vertical FOV; the app turns the letterbox off. Checked by script: Chapter 1 in
   a 2560x1080 window: the proportions right (the posts and the figure as in 16:9), more of the level
   at both sides; the HUD stretched.
+- **Movies on ultrawide** (2026-10-21): the logo movies and the opening movie are 16:9 Bink
+  movies; while one plays the presenter shows it with black bars at the sides instead of
+  stretched (present_use_actual_aspect off and present_letterbox on for that time, not saved).
+  Start: BinkOpen's header hook; end: a hook at the start of BinkClose (sub_821A5FE8, called only
+  from the game's movie close). Checked by script in a 2560x1080 window with skip_intro off: the
+  logos 16:9 in the middle, the screen after them fills the window again.
 - **High frame rate measured** (F4 > Bildrate, `frame_rate_limit`): the game swaps with interval 1,
   so its rate follows the emulated vblank: 59.6 / 58.8 FPS in Chapter 1 with 60, 110 / 96 with 144.
   Game speed: with the same script (2 s of stick forward), the figure stands on the same spot at
