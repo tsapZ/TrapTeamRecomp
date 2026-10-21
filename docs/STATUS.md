@@ -49,3 +49,8 @@ Updated at the end of every session. Only record what a build actually did.
   variable by a heap scan every half second and opens the menu for player 1. Checked by script:
   the menu came up by itself 0.1 s after the prompt. Player 2's prompt and the "too many" screens
   are still to look at.
+- **Player 2's prompt** (checked by script: player 1 plays Chop Chop, player 2 presses A): the game
+  makes a second "player state macro" variable (at 0xB79B7918) with "Player State - Need Toy", so the
+  watch opens the menu, but for player 1: the variable doesn't say whose it is, and both players'
+  variables point to the same state object. Nothing near it names the player (snapshot at player
+  2's prompt); still to find, e.g. the player object the state machine runs for.
