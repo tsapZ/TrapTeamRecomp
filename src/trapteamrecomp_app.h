@@ -25,6 +25,8 @@
 
 #include "dev/input_script.h"
 #include "dev/write_watch.h"
+#include "game/portal_prompt_watch.h"
+#include "game/toy_portraits.h"
 #include "dev/gpu_diagnostics.h"
 #include "localization.h"
 #include "portal_rex/achievements_ui.h"
@@ -83,6 +85,7 @@ class TrapteamrecompApp : public rex::ReXApp {
   }
 
   void OnShutdown() override {
+    trapteamrecomp::StopPortalPromptWatch();
     // The menu's textures belong to the immediate drawer, which goes away right after this.
     skylanders::ShutdownAchievementsMenu();
     skylanders::ShutdownPortalMenu();
@@ -119,6 +122,11 @@ class TrapteamrecompApp : public rex::ReXApp {
     skylanders::InstallPortal(skylanders::SharedFiguresDir(user_data_root()));
     // A real crash logs where in the game it happened (guest call chain and registers).
     trapteamrecomp::InstallCrashReport(runtime()->memory());
+    // Pictures for the portal menu from the game's own files: the HUD portraits of every
+    // Skylander and Mini, each figure's own variant where the game has one.
+    trapteamrecomp::InstallToyPortraits(game_data_root_);
+    // The portal menu opens by itself when the game asks for a Skylander.
+    trapteamrecomp::StartPortalPromptWatch(runtime()->memory());
     // The achievements list (F7, F4 > Spiel > Erfolge); the kernel's list exists from launch on.
     skylanders::RegisterAchievementsMenu(
         imgui_drawer(), immediate_drawer(), &app_context(), runtime(),

@@ -41,7 +41,13 @@ endif()
 # Sources
 set(TRAPTEAMRECOMP_SOURCES
     src/main.cpp
+    src/game/alchemy/iga11_archive.cpp
+    src/game/alchemy/igz8_file.cpp
+    src/game/alchemy/lzma_decoder.cpp
     src/game/kernel_stubs.cpp
+    src/game/portal_prompt_watch.cpp
+    src/game/toy_portraits.cpp
+    src/game/xenos_dxt.cpp
     src/localization.cpp
     src/settings_pages.cpp
     src/dev/gpu_diagnostics.cpp
