@@ -125,6 +125,22 @@ std::string Igz8File::String(uint64_t at) const {
   return out;
 }
 
+std::string Igz8File::StringField(uint64_t object, uint32_t field) const {
+  const uint32_t value = Be32(object + field);
+  const auto at = value ? Deserialize(value) : std::nullopt;
+  return at ? String(*at) : std::string();
+}
+
+std::optional<std::vector<uint8_t>> Igz8File::MemoryField(uint64_t object, uint32_t size_field) const {
+  constexpr uint32_t kMaxSize = 0x1000000;
+  const uint32_t size = Be32(object + size_field) & 0x0FFFFFFF;
+  const auto at = Deserialize(Be32(object + size_field + 4));
+  if (!at || size > kMaxSize || *at + size > length_) return std::nullopt;
+  std::vector<uint8_t> out(size);
+  if (size && !reader_(*at, out.size(), out.data())) return std::nullopt;
+  return out;
+}
+
 std::optional<uint64_t> Igz8File::Deserialize(uint32_t value) const {
   const uint32_t pool = value >> 27;
   if (pool >= pools_.size()) return std::nullopt;

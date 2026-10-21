@@ -57,6 +57,11 @@ class Igz8File {
   std::vector<uint64_t> Objects(std::string_view type) const;
   uint32_t Field(uint64_t object, uint32_t offset) const { return Be32(object + offset); }
   std::optional<uint64_t> Pointer(uint32_t value) const { return Deserialize(value); }
+  // The NUL-terminated string a pointer field points to (empty if none), and the bytes of a
+  // memory reference field (u32 size | flags << 28, then the pointer), as the scenes' texts need
+  // them (src/game/toy_hats.cpp).
+  std::string StringField(uint64_t object, uint32_t field) const;
+  std::optional<std::vector<uint8_t>> MemoryField(uint64_t object, uint32_t size_field) const;
   struct RawPixels {
     uint64_t offset = 0;
     uint32_t size = 0;

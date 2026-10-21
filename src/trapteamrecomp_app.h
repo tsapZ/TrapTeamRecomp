@@ -28,6 +28,7 @@
 #include "hooks/ultrawide_hook.h"
 #include "game/game_fonts.h"
 #include "game/portal_prompt_watch.h"
+#include "game/toy_hats.h"
 #include "game/toy_portraits.h"
 #include "dev/gpu_diagnostics.h"
 #include "localization.h"
@@ -148,6 +149,7 @@ class TrapteamrecompApp : public rex::ReXApp {
     // Pictures for the portal menu from the game's own files: the cards of its collection
     // screens (the HUD portraits where there is none), each figure's own variant.
     trapteamrecomp::InstallToyPortraits(game_data_root_);
+    trapteamrecomp::InstallToyHats(game_data_root_);
     // The portal menu opens by itself when the game asks for a Skylander.
     trapteamrecomp::StartPortalPromptWatch(runtime()->memory());
     // The achievements list (F7, F4 > Spiel > Erfolge); the kernel's list exists from launch on.
