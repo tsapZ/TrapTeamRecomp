@@ -79,6 +79,19 @@ address = 0x8230F7F0
 name = "UltrawideFovHook"
 registers = ["f1", "f2", "f3"]
 
+# 0x821DD2D4 is stfs f31,188(r31) in sub_821DD170, the UI's screen set-up: it takes the display's
+# size (+684 / +688 of the object at 0x8289436C), on a 16:9 video mode 1280 x 720 (the floats at
+# 0x820EBA9C / 0x820EBAA0), and stores width and height at +188 / +192 of the UI screen object
+# (the fields the UI scripts' "screen width" / "screen height" read, sub_821EF258 / sub_821EF2C8)
+# and the aspect at 0x82826308. Found from the code loading those floats. With ultrawide_hud
+# (on) on a wider window, src/hooks/ultrawide_hook.cpp sets f31 (the width) to the
+# height x the window's aspect, as GiantsRecomp's hook does for its UI screen object (+180); it
+# only changes this register. On by default (checked: HUD, dialogue box, notices, pause menu).
+[[midasm_hook]]
+address = 0x821DD2D4
+name = "UltrawideHudHook"
+registers = ["f29", "f31"]
+
 [functions]
 # Function starts the analyzer put one instruction late: it reached each function through a branch
 # to its second instruction, while the real start is only in a pointer table (a vtable). Calling

@@ -76,6 +76,12 @@ Updated at the end of every session. Only record what a build actually did.
   there, keeping the vertical FOV; the app turns the letterbox off. Checked by script: Chapter 1 in
   a 2560x1080 window: the proportions right (the posts and the figure as in 16:9), more of the level
   at both sides; the HUD stretched.
+- **The HUD at the window's edges with ultrawide** (`ultrawide_hud`, on; F4 > Grafik > "HUD bei
+  Ultrawide", #4): the UI lays itself out on its screen object's width (+188, 1280), set by
+  sub_821DD170 from the display's size; a hook at that store (0x821DD2D4) sets it to the height x
+  the window's aspect, as GiantsRecomp does. Found from the code loading the 1280 / 720 floats.
+  Checked by script in a 2560x1080 window: the HUD keeps its proportions at the left edge, the
+  dialogue box, the autosave notice, the portal prompt and the pause menu look right.
 - **Movies on ultrawide** (2026-10-21): the logo movies and the opening movie are 16:9 Bink
   movies; while one plays the presenter shows it with black bars at the sides instead of
   stretched (present_use_actual_aspect off and present_letterbox on for that time, not saved).

@@ -8,7 +8,18 @@
 // this is active, unless set by hand) the presenter stretches it across the wider window, so the
 // camera has to see that much more to the sides for the picture to keep its proportions ("Hor+"):
 // the hook at the call widens the aspect and, if the call gives a horizontal FOV, that one too,
-// keeping the vertical FOV. The HUD is drawn into the same 16:9 frame and is stretched.
+// keeping the vertical FOV. The HUD is drawn into the same 16:9 frame and would be stretched.
+//
+// The HUD (ultrawide_hud, on): the UI lays itself out on its screen object's width and height
+// (+188 / +192, 1280 x 720 on a 16:9 video mode), set by sub_821DD170 from the display's size.
+// The hook at its store (0x821DD2D4) sets the width to the height x the window's aspect (720 x
+// 2560 / 1080 = 1707), as GiantsRecomp's does for its UI screen object: the HUD keeps its
+// proportions and goes to the window's edges. Found 2026-10-21 from the code loading the 1280 /
+// 720 floats (0x820EBA9C), after the renderer's 2D camera (sub_8230F840, the full-screen passes)
+// turned out not to be the HUD's (#4). Checked by script in a 2560x1080 window: the HUD (Double
+// Trouble's portrait and gauge at the left edge, the name 0.75 as wide as stretched), the
+// dialogue box, the autosave notice, the portal prompt and the pause menu (its background covers
+// the whole window).
 //
 // Found 2026-10-21: the builder sub_823B1AF0 in a dump of this game's code by Swap Force's
 // (42 of its first 48 instructions the same); the calls with a probe, a hook at each of the
@@ -42,7 +53,10 @@ REXCVAR_DECLARE(std::string, resolution);
 REXCVAR_DEFINE_BOOL(ultrawide_fov, true, "Graphics",
                     "On a window wider than 16:9 (resolution), show more to the sides instead of "
                     "black bars: a wider field of view and the picture stretched across the "
-                    "window. The HUD is stretched with it");
+                    "window");
+REXCVAR_DEFINE_BOOL(ultrawide_hud, true, "Graphics",
+                    "With ultrawide_fov on a wider window, the HUD and the menus at the window's "
+                    "edges in their own proportions instead of stretched");
 
 namespace {
 
@@ -115,4 +129,19 @@ void UltrawideFovHook(PPCRegister& f1, PPCRegister& f2, PPCRegister& f3) {
 // At the start of BinkClose (sub_821A5FE8): the movie is over (or skipped).
 void BinkCloseHook() {
   trapteamrecomp::MovieClosed();
+}
+
+// At 0x821DD2D4 (stfs f31,188(r31)) in sub_821DD170, the UI's screen set-up: f31 = the screen's
+// width, f29 its height (1280 x 720 on a 16:9 video mode), about to be stored at +188 / +192.
+void UltrawideHudHook(PPCRegister& f29, PPCRegister& f31) {
+  static std::atomic<bool> logged{false};
+  if (!REXCVAR_GET(ultrawide_hud) || !trapteamrecomp::UltrawideActive() || f29.f64 <= 0) {
+    if (!logged.exchange(true)) REXLOG_INFO("Ultrawide: UI screen {} x {}", f31.f64, f29.f64);
+    return;
+  }
+  const double width = double(float(f29.f64 * WindowAspect()));
+  if (!logged.exchange(true)) {
+    REXLOG_INFO("Ultrawide: UI screen {} x {} -> {} wide", f31.f64, f29.f64, width);
+  }
+  if (width > f31.f64) f31.f64 = width;
 }
