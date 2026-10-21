@@ -27,6 +27,17 @@ address = 0x821A5FE8
 name = "BinkCloseHook"
 registers = []
 
+# 0x82303D78 is fdivs f2,f13,f4 in sub_82303CE8, which works out the FXAA sample offsets (the
+# CFxaaParametersAttr's quality / console / 360 rcp frame vectors) from the frame size: f4 / f5 hold
+# the width and height as floats here. Found by the 360 offsets' constants (-4.0, 8.0) next to two
+# divides. src/hooks/fxaa_scale_hook.cpp multiplies f4/f5 by the draw resolution scale
+# (fxaa_follow_resolution_scale, on) so the game's FXAA samples one host pixel apart at
+# resolution_scale 2 and up; it only changes these two registers.
+[[midasm_hook]]
+address = 0x82303D78
+name = "FxaaFrameSizeHook"
+registers = ["f4", "f5"]
+
 # The scene size hooks (src/hooks/scene_size_hook.cpp; experimental, off unless scene_size is
 # set): the same render code as SwapForceRecomp's, found in a dump of this game's code by the
 # instructions at its four hooks, each with the same instructions around it.
