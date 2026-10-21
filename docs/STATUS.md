@@ -15,7 +15,7 @@ Updated at the end of every session. Only record what a build actually did.
 | Logo movies | skipped (`skip_intro`, on): the title screen after about 15 s; the opening movie optional (`skip_opening_movie`, off) |
 | In-game | ✅ Chapter 1 (Sprudelquell) loads, the pause menu opens, the cutscene plays |
 | Portal | ✅ emulated: the game asks "Spieler 1: Setze einen Skylander auf das Traptanium-Portal", a Spyro's Adventure figure put on by script (Chop Chop) gets its intro and plays with the HUD |
-| Portal menu | ✅ opens by itself at the game's "Setze einen Skylander" prompt (for the first player without a Skylander) and shows the cards of the game's collection screens for every Skylander, Mini, trap and magic item, each figure's own variant where the game has one; titles and text in the game's own fonts |
+| Portal menu | ✅ opens by itself at the game's "Setze einen Skylander" prompt (for the first player without a Skylander) and shows the cards of the game's collection screens for every Skylander, Mini, trap and magic item, each figure's own variant where the game has one; titles and text in the game's own fonts, the element symbols (Light and Dark too) and the gold coin from the game |
 
 ## 2026-10-21: session log
 
@@ -100,3 +100,16 @@ Updated at the end of every session. Only record what a build actually did.
   side that the stored advance includes; measured against the title screen's "Starten", the game
   draws each advance 8 pixels shorter, and so does the menu now (with the stored advance the
   letters stood visibly too far apart).
+- **The game's element symbols and gold coin** (src/game/toy_portraits.cpp): the menu drew its
+  own; the scene of permanent/global.bld has the UI's, "Levels/Includes/UI_Main/sprites/
+  elementalIcons/<element>_64.png" (85x85, Light and Dark among them) and "UI_Main/sprites/stats/
+  coin.png", stored upside down like the cards. The portal menu had no key for Light and Dark yet
+  (skylanders-portal: "element:light", "element:dark").
+- **Trap Team's characters in their element groups:** the portal library knew the elements of the
+  first three games' characters only, so Trap Team's tab listed Gusto, Knight Light and the others
+  under none. Its table now has Trap Team's, SuperChargers' and Imaginators' characters, read from
+  the games' files: every Trap Team character scene names its element ("Elemental_Fire",
+  "Portal_EntryFX_Fire.lvl"; checked: all 196 earlier characters these scenes have agree with the
+  table), SuperChargers' and Imaginators' toy data have it at +0x0C. Checked by script: the Trap
+  Team tab shows Blastermind, Enigma, Cobra Cadabra, Deja Vu and Spry under Magic, Krypt King,
+  Short Cut, Bat Spin, Funny Bone and Hijinx under Undead, and the Light and Dark symbols.

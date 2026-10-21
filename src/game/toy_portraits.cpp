@@ -1,5 +1,5 @@
 // Pictures of the Skylanders for the portal menu: the cards of the game's collection screens,
-// else the portraits its HUD shows.
+// else the portraits its HUD shows; and the menu's element symbols and gold coin (kArtArchive).
 //
 // The cards: rom/misc/UI_Collection_Champions.arc (the Skylanders, Minis and magic items) and
 // rom/misc/ui_collection_traps.arc (the traps), IGA version 11, one IGZ version 8 texture per
@@ -79,6 +79,19 @@ constexpr char kScene[] = "level.bld";
 constexpr char kMiscDir[] = "misc";
 constexpr const char* kCardArchives[] = {"UI_Collection_Champions.arc", "ui_collection_traps.arc"};
 
+// The menus' symbols, from the scene of permanent/global.bld: the UI's element symbols
+// "Levels/Includes/UI_Main/sprites/elementalIcons/<element>_64.png" (85x85 DXT5, the game's names
+// are the menu's, Light and Dark among them; villain_64 is left out) and its gold coin
+// "Levels/Includes/UI_Main/sprites/stats/coin.png" (85x85). Stored upside down like the cards
+// (seen 2026-10-21: the flame and the leaves pointing down, the coin's S mirrored).
+constexpr char kPermanentDir[] = "permanent";
+constexpr char kArtArchive[] = "global.bld";
+constexpr std::string_view kElementPath = "levels/includes/ui_main/sprites/elementalicons/";
+constexpr std::string_view kElementSuffix = "_64.png";
+constexpr std::string_view kElements[] = {"air",   "dark",  "earth", "fire",   "life",
+                                          "light", "magic", "tech",  "undead", "water"};
+constexpr std::string_view kGoldPicture = "levels/includes/ui_main/sprites/stats/coin.png";
+
 // Swap Force's halves: bottoms 1000 + n, tops 2000 + n.
 constexpr uint16_t kSwapBottoms = 1000;
 constexpr uint16_t kSwapTops = 2000;
@@ -141,6 +154,7 @@ struct Card {
 
 std::mutex g_mutex;
 std::unordered_map<uint16_t, std::vector<Card>> g_cards;                  // by figure id
+std::unordered_map<std::string, std::shared_ptr<const FigureImage>> g_art;   // by menu key
 std::unordered_map<uint16_t, std::vector<Portrait>> g_portraits;           // by figure id
 std::unordered_map<std::string, std::shared_ptr<const FigureImage>> g_minis;  // by picture name
 
@@ -180,9 +194,10 @@ std::shared_ptr<const FigureImage> ToSquareImage(RgbaImage&& image) {
   return out;
 }
 
-// Calls `use` for every HUD portrait in the scene of `archive_path`, with its name.
-template <typename Use>
-int ReadPortraits(const std::filesystem::path& archive_path, Use use) {
+// Calls `use(name, picture)` for every picture in the scene of `archive_path` that `name_of`
+// names (from its source path; empty to skip it), the picture upright and square.
+template <typename NameOf, typename Use>
+int ReadScenePictures(const std::filesystem::path& archive_path, NameOf name_of, Use use) {
   auto archive = alchemy::Iga11Archive::Open(archive_path);
   if (!archive) return 0;
   const auto scene = archive->Find(kScene);
@@ -197,7 +212,7 @@ int ReadPortraits(const std::filesystem::path& archive_path, Use use) {
   if (!igz) return 0;
   int count = 0;
   for (const auto& image : igz->Images()) {
-    const std::string name = PortraitName(image.name);
+    const std::string name = name_of(image.name);
     if (name.empty()) continue;
     if (auto rgba = igz->Decode(image)) {
       FlipVertically(*rgba);  // stored upside down
@@ -206,6 +221,19 @@ int ReadPortraits(const std::filesystem::path& archive_path, Use use) {
     }
   }
   return count;
+}
+
+// The menu's key for one of its symbols ("element:fire", "ui:gold"); empty for other pictures.
+std::string ArtKey(const std::string& path) {
+  const std::string lower = Lower(path);
+  if (lower == kGoldPicture) return "ui:gold";
+  if (!lower.starts_with(kElementPath) || !lower.ends_with(kElementSuffix)) return {};
+  const std::string element = lower.substr(
+      kElementPath.size(), lower.size() - kElementPath.size() - kElementSuffix.size());
+  for (std::string_view known : kElements) {
+    if (element == known) return "element:" + element;
+  }
+  return {};
 }
 
 // ".../519_12288_triggersnappy.png/0x3a50f90c.png.igb.tex.igz" -> 519, 12288; false for a file
@@ -265,7 +293,13 @@ void Load(std::filesystem::path rom) {
   auto start = Clock::now();
   int cards = 0;
   for (const char* name : kCardArchives) cards += ReadCards(rom / kMiscDir / name);
-  REXLOG_INFO("Toy pictures: {} collection cards in {} ms", cards,
+  const int symbols = ReadScenePictures(
+      rom / kPermanentDir / kArtArchive, ArtKey,
+      [](const std::string& key, std::shared_ptr<const FigureImage> image) {
+        std::lock_guard<std::mutex> lock(g_mutex);
+        g_art[key] = std::move(image);
+      });
+  REXLOG_INFO("Toy pictures: {} collection cards and {} symbols in {} ms", cards, symbols,
               std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - start).count());
   start = Clock::now();
   std::error_code ec;
@@ -293,16 +327,18 @@ void Load(std::filesystem::path rom) {
       }
     }
     ++archives;
-    ReadPortraits(entry.path(), [&](const std::string& name, std::shared_ptr<const FigureImage> image) {
-      std::lock_guard<std::mutex> lock(g_mutex);
-      if (name.starts_with(kMiniPrefix)) {
-        g_minis[name] = std::move(image);
-        ++minis;
-      } else if (!mini && !name.starts_with(kVillainPrefix)) {
-        g_portraits[id].push_back(Portrait{deco, name, std::move(image)});
-        ++portraits;
-      }
-    });
+    ReadScenePictures(
+        entry.path(), PortraitName,
+        [&](const std::string& name, std::shared_ptr<const FigureImage> image) {
+          std::lock_guard<std::mutex> lock(g_mutex);
+          if (name.starts_with(kMiniPrefix)) {
+            g_minis[name] = std::move(image);
+            ++minis;
+          } else if (!mini && !name.starts_with(kVillainPrefix)) {
+            g_portraits[id].push_back(Portrait{deco, name, std::move(image)});
+            ++portraits;
+          }
+        });
   }
   REXLOG_INFO("Toy portraits: {} portraits and {} Minis from {} archives in {} ms", portraits,
               minis, archives,
@@ -400,6 +436,11 @@ void InstallToyPortraits(const std::filesystem::path& rom_dir) {
   std::thread(Load, rom_dir).detach();
   skylanders::SetFigureImageProvider(
       [](uint16_t id, uint16_t variant) { return Lookup(id, variant); });
+  skylanders::SetArtImageProvider([](const std::string& key) -> std::shared_ptr<const FigureImage> {
+    std::lock_guard<std::mutex> lock(g_mutex);
+    auto it = g_art.find(key);
+    return it == g_art.end() ? nullptr : it->second;
+  });
 }
 
 }  // namespace trapteamrecomp
