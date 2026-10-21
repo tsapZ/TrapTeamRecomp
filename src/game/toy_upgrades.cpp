@@ -10,8 +10,17 @@
 //   years' figures: 10 + the figure's year (Spyro's Adventure's Skylanders have 11 "Wow Pow -
 //   Fireslam!" for Giants' Series 2 and 12 "Head Start" for Swap Force's Series 3; Giants' 12
 //   "Shoot the Breeze!" for Swap Force and 13 "Double Barrel!" for this game; this game's own have
-//   none). Swap Force's halves name theirs differently ("Name(a- 5a)", "Name(soulgem)") and get no
-//   upgrades here yet.
+//   none).
+// - Swap Force's halves (rom/character/1000_BoomJet_Bot.bld .. 2015_..._Top.bld, the file number
+//   their figure id) have one starting attack, three basic upgrades "Name(1)" .. "Name(3)", two per
+//   path keyed by the path letter ("Name(4-4a)", "Name(4 - 5a)", "Name(a- 6a)": a or b, in the order
+//   of the number before it) and "Name(soulgem)", and Swap Force's bits for a half: the basic
+//   upgrades 2-4, the paths 5-6 (the other path's from 11), the Soul Gem 7 (SwapForceRecomp
+//   src/game/game_art.cpp). Their pictures are .tga files named after the half's part
+//   (".../shapeshifters/legs/stormbird/stormbird_legs_base1.tga"): "base1", "stat" (the second
+//   basic upgrade, which raises a stat), "base2", "path1_1" .. "path2_2", "sg" and the starting
+//   attack's own name. The prices are the same list's (500, 700, 900; 1700, 2200; 4000), assumed:
+//   this disc doesn't store them.
 // - The prices are Giants' (500, 700, 900, 1200 for the basic upgrades, 1700, 2200, 3000 along a
 //   path, 4000 for the Soul Gem, 5000 for a Wow Pow): this disc's global scene has no
 //   UpgradeCost values to read them from.
@@ -69,6 +78,16 @@ constexpr int kSoulGemBit = kFirstPathBit + kPathLength;
 constexpr int kWowPowBit = kSoulGemBit + 1;
 constexpr int kFirstAlternateBit = kWowPowBit + 1;
 
+// Swap Force's halves (see the top).
+constexpr int kHalfBasic = 0;
+constexpr int kHalfPath = 100;
+constexpr int kHalfSoulGem = 200;
+constexpr int kHalfBasicCount = 3;
+constexpr int kHalfPathLength = 2;
+constexpr int kHalfFirstPathBit = kFirstUpgradeBit + kHalfBasicCount;
+constexpr int kHalfSoulGemBit = kHalfFirstPathBit + kHalfPathLength;
+constexpr uint16_t kFirstHalfId = 1000;
+
 // Catalog variants: year << 12; Spyro's Adventure's Legendaries are 400 + its id, Dark Spyro 28.
 constexpr int kYearShift = 12;
 constexpr uint16_t kLegendaryIds = 400;
@@ -80,6 +99,8 @@ struct CharacterText {
   std::string start_name[2], start_desc[2];
   std::string path_name[2], path_desc[2];
   std::map<int, std::string> name, desc;  // by upgrade number
+  // A Swap Force half's: kHalfBasic + 0..2, kHalfPath + path * 10 + its number, kHalfSoulGem.
+  std::map<int, std::string> half_name, half_desc;
   std::filesystem::path arc;
   std::unordered_map<std::string, size_t> pictures;  // suffix -> the .arc's entry
 };
@@ -104,6 +125,7 @@ bool Has(const std::string& s, std::string_view part) { return s.find(part) != s
 int FirstYear(uint16_t id) {
   if (id < 100) return 0;
   if (id < 200) return 1;
+  if (id >= kFirstHalfId) return 2;
   return 3;
 }
 
@@ -134,9 +156,25 @@ void Classify(std::string key, const std::string& game_text, CharacterText& t) {
   static const std::regex kUpgrade(R"(^(name|descr?)\(?(\d\d)(?:_(\d{4}))?\)?(?:_(\w+))?$)");
   static const std::regex kPath(R"((?:path|branch)_?(1|2|a|b|left|right))");
   static const std::regex kYear(R"(^\d{4}$)");
+  static const std::regex kHalfBasicKey(R"(^(name|descr?)\((\d)\)$)");
+  static const std::regex kHalfPathKey(R"(^(name|descr?)\(\s*[0-9ab]\s*-\s*(\d)([ab])\)$)");
+  static const std::regex kHalfSoulGemKey(R"(^(name|descr?)\(soulgem\)$)");
   const std::string text = ButtonNames(game_text);
   key = Lower(std::move(key));
   std::smatch m;
+  if (std::regex_match(key, m, kHalfBasicKey)) {
+    (m[1] == "name" ? t.half_name : t.half_desc)[kHalfBasic + std::stoi(m[2]) - 1] = text;
+    return;
+  }
+  if (std::regex_match(key, m, kHalfPathKey)) {
+    const int path = m[3] == "a" ? 0 : 1;
+    (m[1] == "name" ? t.half_name : t.half_desc)[kHalfPath + path * 10 + std::stoi(m[2])] = text;
+    return;
+  }
+  if (std::regex_match(key, m, kHalfSoulGemKey)) {
+    (m[1] == "name" ? t.half_name : t.half_desc)[kHalfSoulGem] = text;
+    return;
+  }
   if (std::regex_match(key, m, kUpgrade)) {
     int upgrade = std::stoi(m[2]);
     if (m[3].matched) {
@@ -202,8 +240,11 @@ void Load(std::filesystem::path rom, std::string pack) {
   int characters = 0;
   for (const auto& entry : std::filesystem::directory_iterator(rom / kCharacterDir, ec)) {
     const std::string file = entry.path().filename().string();
-    if (file.size() < 9 || entry.path().extension() != ".bld" || !std::isdigit((unsigned char)file[0]) ||
-        !std::isdigit((unsigned char)file[1]) || !std::isdigit((unsigned char)file[2]) || file[3] != '_') {
+    // "NNN_" or, for Swap Force's halves, "NNNN_": the figure id.
+    size_t digits = 0;
+    while (digits < file.size() && std::isdigit((unsigned char)file[digits])) ++digits;
+    if (digits < 3 || digits > 4 || digits >= file.size() || file[digits] != '_' ||
+        entry.path().extension() != ".bld") {
       continue;
     }
     // The decos share their Skylander's upgrades.
@@ -215,32 +256,109 @@ void Load(std::filesystem::path rom, std::string pack) {
     auto archive = alchemy::Iga11Archive::Open(entry.path());
     if (!archive) continue;
     const auto texts = ReadSceneTexts(*archive, pack);
-    const std::string prefix = file.substr(0, 4);
+    const std::string prefix = file.substr(0, digits + 1);
     CharacterText t;
     for (const auto& [key, text] : texts) {
       if (key.starts_with(prefix)) Classify(key.substr(prefix.size()), text, t);
     }
-    if (!t.name.contains(kSoulGem)) continue;  // not a playable Skylander
+    // Not a playable Skylander (the villains share the halves' numbers: 1001_ChompyMage).
+    if (!t.name.contains(kSoulGem) && !t.half_name.contains(kHalfSoulGem)) continue;
     t.arc = entry.path();
     t.arc.replace_extension(".arc");
     if (auto arc = alchemy::Iga11Archive::Open(t.arc)) {
       for (size_t i = 0; i < arc->size(); ++i) {
         const std::string name = Lower(arc->name(i));
         const size_t at = name.find(kPosesPath);
-        const size_t png = name.find(".png", at == std::string::npos ? 0 : at);
-        if (at == std::string::npos || png == std::string::npos) continue;
-        const std::string base = name.substr(0, png);
-        t.pictures[base.substr(base.find_last_of("/_") + 1)] = i;
+        if (at == std::string::npos) continue;
+        size_t ext = name.find(".png", at);
+        if (ext == std::string::npos) ext = name.find(".tga", at);
+        if (ext == std::string::npos) continue;
+        const std::string base = name.substr(0, ext);
+        // A half's part: "stormbird_legs_path1_1" -> "path1_1"; else the last word.
+        size_t part = std::string::npos;
+        for (std::string_view word : {"_legs_", "_body_"}) {
+          if (const size_t w = base.rfind(word); w != std::string::npos) part = w + word.size();
+        }
+        t.pictures[part != std::string::npos ? base.substr(part) : base.substr(base.find_last_of("/_") + 1)] = i;
       }
     }
     std::lock_guard<std::mutex> lock(g_mutex);
-    g_characters[uint16_t(std::stoi(file.substr(0, 3)))] = std::move(t);
+    // The first file of an id wins: "1005_FireKraken_Bot" before its "_Jade" deco.
+    g_characters.emplace(uint16_t(std::stoi(file.substr(0, digits))), std::move(t));
     ++characters;
   }
   REXLOG_INFO("Toy upgrades: the upgrades of {} Skylanders from {}", characters, pack);
 }
 
+// A Swap Force half's upgrades (see the top).
+std::shared_ptr<const FigureUpgrades> BuildHalf(uint16_t id, const CharacterText& t) {
+  auto result = std::make_shared<FigureUpgrades>();
+  auto text = [](const std::map<int, std::string>& m, int i) {
+    auto it = m.find(i);
+    return it == m.end() ? std::string() : it->second;
+  };
+  auto upgrade = [&](int key, int bit, uint32_t cost, const char* picture) {
+    FigureUpgrade u;
+    u.name = text(t.half_name, key);
+    u.description = text(t.half_desc, key);
+    u.bit = bit;
+    u.cost = cost;
+    u.image = PictureKey(id, t, {picture});
+    return u;
+  };
+  // The starting attack: its picture is the one that isn't an upgrade's.
+  static const std::unordered_set<std::string> kUpgradePictures = {"base1", "base2", "stat", "path1_1",
+                                                                  "path1_2", "path2_1", "path2_2", "sg"};
+  FigureUpgradePath start;
+  start.kind = FigureUpgradePath::Kind::kStart;
+  for (int k = 0; k < 2; ++k) {
+    if (t.start_name[k].empty()) continue;
+    FigureUpgrade u;
+    u.name = t.start_name[k];
+    u.description = t.start_desc[k];
+    for (const auto& [suffix, entry] : t.pictures) {
+      if (!kUpgradePictures.contains(suffix)) {
+        u.image = PictureKey(id, t, {suffix});
+        break;
+      }
+    }
+    start.upgrades.push_back(std::move(u));
+  }
+  if (!start.upgrades.empty()) result->paths.push_back(std::move(start));
+  FigureUpgradePath basic;
+  basic.kind = FigureUpgradePath::Kind::kBasic;
+  const char* basic_pictures[kHalfBasicCount] = {"base1", "stat", "base2"};
+  for (int i = 0; i < kHalfBasicCount; ++i) {
+    basic.upgrades.push_back(upgrade(kHalfBasic + i, kFirstUpgradeBit + i, kCosts[i], basic_pictures[i]));
+  }
+  result->paths.push_back(std::move(basic));
+  for (int p = 0; p < 2; ++p) {
+    FigureUpgradePath path;
+    path.kind = FigureUpgradePath::Kind::kPath;
+    path.name = t.path_name[p];
+    path.description = t.path_desc[p];
+    // The path's two upgrades in the order of their numbers.
+    std::vector<int> keys;
+    for (const auto& [key, name] : t.half_name) {
+      if (key >= kHalfPath + p * 10 && key < kHalfPath + p * 10 + 10) keys.push_back(key);
+    }
+    for (int j = 0; j < kHalfPathLength && j < int(keys.size()); ++j) {
+      const std::string picture = "path" + std::to_string(p + 1) + "_" + std::to_string(j + 1);
+      FigureUpgrade u = upgrade(keys[j], kHalfFirstPathBit + j, kCosts[kBasicCount + j], picture.c_str());
+      u.alternate_bit = kFirstAlternateBit + j;
+      path.upgrades.push_back(std::move(u));
+    }
+    result->paths.push_back(std::move(path));
+  }
+  FigureUpgradePath soul_gem;
+  soul_gem.kind = FigureUpgradePath::Kind::kSoulGem;
+  soul_gem.upgrades.push_back(upgrade(kHalfSoulGem, kHalfSoulGemBit, kCosts[kBasicCount + kPathLength], "sg"));
+  result->paths.push_back(std::move(soul_gem));
+  return result;
+}
+
 std::shared_ptr<const FigureUpgrades> Build(uint16_t id, const CharacterText& t, int year) {
+  if (!t.half_name.empty() && !t.name.contains(kSoulGem)) return BuildHalf(id, t);
   auto result = std::make_shared<FigureUpgrades>();
   auto text = [](const std::map<int, std::string>& m, int i) {
     auto it = m.find(i);
