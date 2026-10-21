@@ -133,9 +133,10 @@ SettingsPage GraphicsPage() {
 SettingsPage FrameRatePage() {
   SettingsPage page{"Frame rate", "Bildrate", {}};
   // The game swaps with presentation interval 1 already; its 30 FPS come from the emulated vblank,
-  // which the SDK runs at 30 Hz without a limit and at the limit's rate with one (measured: 60.0
-  // and 143.9 FPS on the title screen with 60 and 144). Walking speed and the intro's pace stay
-  // the same at 144 FPS; only loading screens finish sooner. docs/STATUS.md, 2026-10-20.
+  // which the SDK runs at 30 Hz without a limit and at the limit's rate with one (measured in
+  // Chapter 1, 2026-10-21: 59.6 FPS with 60, 96-110 with 144). The figure walks as far in 2 s of
+  // stick at 144 as at 30 (same spot in both screenshots); a figure's arrival finishes about a
+  // second sooner (it loads the figure). docs/STATUS.md.
   page.settings.push_back(
       {"frame_rate_limit", "Frame rate", "Bildrate",
        "The game was made for 30 FPS and keeps its normal speed with more. Best set to your "

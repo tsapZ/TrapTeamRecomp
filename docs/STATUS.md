@@ -76,3 +76,8 @@ Updated at the end of every session. Only record what a build actually did.
   there, keeping the vertical FOV; the app turns the letterbox off. Checked by script: Chapter 1 in
   a 2560x1080 window: the proportions right (the posts and the figure as in 16:9), more of the level
   at both sides; the HUD stretched.
+- **High frame rate measured** (F4 > Bildrate, `frame_rate_limit`): the game swaps with interval 1,
+  so its rate follows the emulated vblank: 59.6 / 58.8 FPS in Chapter 1 with 60, 110 / 96 with 144.
+  Game speed: with the same script (2 s of stick forward), the figure stands on the same spot at
+  144 as at 30 FPS (screenshots); the figure's arrival (portal state "Clear" to play) took 6.8 s at
+  30 and 5.7 s at 144, as it includes loading the figure. No hook needed, as in Giants.
