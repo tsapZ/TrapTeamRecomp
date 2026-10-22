@@ -272,6 +272,13 @@ SettingsPage PortalPage() {
        "Wenn das Spiel nach einem Skylander fragt, \xC3\xB6" "ffnet sich das Portal-Men\xC3\xBC "
        "f\xC3\xBCr diesen Spieler."});
   page.settings.push_back(
+      {"portal_speaker_overlay", "Show who talks", "Zeigen, wer spricht",
+       "While a villain in a trap talks through the portal (the PC's speakers), its picture shows "
+       "at the bottom left with a ring that pulses to its voice.",
+       "Wenn ein B\xC3\xB6sewicht in einer Falle \xC3\xBC" "ber das Portal spricht (die "
+       "Lautsprecher des PCs), erscheint unten links sein Bild mit einem Ring, der zu seiner "
+       "Stimme pulsiert."});
+  page.settings.push_back(
       {"portal_menu_owned_only", "Only my figures", "Nur eigene Figuren",
        "The portal menu lists only figures that have a figure file.",
        "Das Portal-Men\xC3\xBC zeigt nur Figuren, f\xC3\xBCr die es eine Figurendatei gibt."});

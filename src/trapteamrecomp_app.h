@@ -36,6 +36,7 @@
 #include "dev/gpu_diagnostics.h"
 #include "localization.h"
 #include "portal_rex/achievements_ui.h"
+#include "portal_rex/speaker_overlay.h"
 #include "portal_rex/portal_menu.h"
 #include "portal_rex/portal_menu_input.h"
 #include "portal_rex/player_menu.h"
@@ -98,6 +99,7 @@ class TrapteamrecompApp : public rex::ReXApp {
     trapteamrecomp::StopPortalPromptWatch();
     // The menu's textures belong to the immediate drawer, which goes away right after this.
     skylanders::ShutdownAchievementsMenu();
+    skylanders::ShutdownSpeakerOverlay();
     skylanders::ShutdownPortalMenu();
     skylanders::ShutdownPlayerMenu();
     skylanders::ShutdownSettingsMenu();
@@ -180,6 +182,8 @@ class TrapteamrecompApp : public rex::ReXApp {
     trapteamrecomp::StartPortalPromptWatch(runtime()->memory());
     // Items go on and off the portal only once the player's Skylander is back in the game.
     skylanders::SetGameBusyProvider([] { return trapteamrecomp::PortalPromptActive(); });
+    // Who is talking from a trap on the portal: the villain's picture with a ring (#10).
+    skylanders::RegisterSpeakerOverlay(imgui_drawer());
     // The achievements list (F7, F4 > Spiel > Erfolge); the kernel's list exists from launch on.
     skylanders::RegisterAchievementsMenu(
         imgui_drawer(), immediate_drawer(), &app_context(), runtime(),

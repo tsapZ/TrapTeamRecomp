@@ -39,6 +39,8 @@
 //   place <slot> <file>      puts a figure file straight onto the emulated portal's slot (0-15),
 //                            past the portal menu, e.g. a second sidekick for the portal check
 //   remove <slot>            takes the figure off that slot again
+//   trap <slot> <villain>    puts a new trap holding that villain (its name, e.g. Chompy Mage)
+//                            onto the slot, as the portal developer tools (F8) make one
 //   quit                     ends the game
 // Buttons: a b x y start back guide up down left right lb rb ls rs lt rt, or several pressed
 // together joined with + (tap back+y)

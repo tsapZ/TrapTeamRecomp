@@ -82,6 +82,11 @@ constexpr char kCharacterDir[] = "character";
 constexpr char kScene[] = "level.bld";
 constexpr char kMiscDir[] = "misc";
 constexpr const char* kCardArchives[] = {"UI_Collection_Champions.arc", "ui_collection_traps.arc"};
+// The villain vault's pictures of each villain in a trap, for the portal speaker's "who is talking"
+// overlay (skylanders-portal speaker_overlay.h): ".../collection_images/villains/captured/
+// 10NN_villaincaptured.png/...", NN the villain id a trap stores (1-46), as art "villain:<id>".
+constexpr char kVillainArchive[] = "ui_villainvault_stream.arc";
+constexpr std::string_view kVillainCaptured = "/villains/captured/";
 
 // The menus' symbols, from the scene of permanent/global.bld: the UI's element symbols
 // "Levels/Includes/UI_Main/sprites/elementalIcons/<element>_64.png" (85x85 DXT5, the game's names
@@ -293,10 +298,45 @@ int ReadCards(const std::filesystem::path& archive_path) {
   return count;
 }
 
+// Reads the villain vault's captured-villain pictures (kVillainArchive) into g_art.
+int ReadVillains(const std::filesystem::path& archive_path) {
+  auto archive = alchemy::Iga11Archive::Open(archive_path);
+  if (!archive) return 0;
+  auto* a = archive.get();
+  int count = 0;
+  for (size_t index = 0; index < archive->size(); ++index) {
+    const std::string name = Lower(archive->name(index));
+    const size_t at = name.find(kVillainCaptured);
+    if (at == std::string::npos) continue;
+    const size_t digits = at + kVillainCaptured.size();
+    if (name.size() < digits + 4 || !std::isdigit((unsigned char)name[digits])) continue;
+    const int number = std::stoi(name.substr(digits, 4));
+    if (number < 1001 || number > 1099) continue;
+    auto igz = alchemy::Igz8File::Parse(
+        [a, index](uint64_t offset, size_t size, uint8_t* out) {
+          return a->Read(index, offset, size, out);
+        },
+        archive->length(index));
+    if (!igz) continue;
+    const auto images = igz->Images();
+    if (images.empty()) continue;
+    auto rgba = igz->Decode(images[0]);
+    if (!rgba) continue;
+    FlipVertically(*rgba);  // stored upside down like the cards
+    auto image = ToSquareImage(std::move(*rgba));
+    std::lock_guard<std::mutex> lock(g_mutex);
+    g_art["villain:" + std::to_string(number - 1000)] = std::move(image);
+    ++count;
+  }
+  return count;
+}
+
 void Load(std::filesystem::path rom) {
   auto start = Clock::now();
   int cards = 0;
   for (const char* name : kCardArchives) cards += ReadCards(rom / kMiscDir / name);
+  const int villains = ReadVillains(rom / kMiscDir / kVillainArchive);
+  REXLOG_INFO("Toy pictures: {} villains in traps", villains);
   const int symbols = ReadScenePictures(
       rom / kPermanentDir / kArtArchive, ArtKey,
       [](const std::string& key, std::shared_ptr<const FigureImage> image) {

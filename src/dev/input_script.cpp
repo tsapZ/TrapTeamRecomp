@@ -27,6 +27,7 @@
 #include <rex/ui/ui_event.h>
 
 #include "portal_rex/portal_menu_input.h"
+#include "portal/trap_villain.h"
 #include "portal_rex/portal_rex.h"
 #include "write_watch.h"
 
@@ -57,6 +58,7 @@ struct Event {
     kKey,
     kPlace,
     kRemove,
+    kTrap,
     kWatch,
     kUnwatch,
     kDump,
@@ -280,6 +282,11 @@ bool ParseScript(std::istream& in, std::vector<Event>& events) {
       std::getline(words >> std::ws, e.text);
       ok = ok && !e.text.empty();
       e.kind = Event::Kind::kPlace;
+    } else if (cmd == "trap") {
+      ok = bool(words >> e.frames) && e.frames < 16;
+      std::getline(words >> std::ws, e.text);
+      ok = ok && !e.text.empty();
+      e.kind = Event::Kind::kTrap;
     } else if (cmd == "remove") {
       ok = bool(words >> e.frames) && e.frames < 16;
       e.kind = Event::Kind::kRemove;
@@ -502,6 +509,18 @@ class ScriptInputDriver final : public rex::input::InputDriver {
               const bool placed = skylanders::PlaceFigureFromFile(slot, path);
               REXLOG_INFO("Input script: {} slot {}", placed ? "placed in" : "could not place in",
                           slot);
+            });
+          }
+        } else if (e.kind == Event::Kind::kTrap) {
+          if (run_in_ui) {
+            run_in_ui([slot = int(e.frames), name = e.text] {
+              const skylanders::portal::TrapVillain* villain = nullptr;
+              for (const auto& v : skylanders::portal::AllTrapVillains()) {
+                if (v.name == name && !v.variant) villain = &v;
+              }
+              const bool placed = villain && skylanders::CreateAndPlaceVillainTrap(slot, *villain);
+              REXLOG_INFO("Input script: trap with {} {} slot {}", name,
+                          placed ? "placed in" : "could not be placed in", slot);
             });
           }
         } else if (e.kind == Event::Kind::kRemove) {
