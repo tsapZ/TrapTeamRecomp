@@ -13,7 +13,8 @@ See [docs/STATUS.md](docs/STATUS.md) and [docs/roadmap.md](docs/roadmap.md).
 |---|---|
 | Build | ✅ codegen and build |
 | Boot | ✅ menus and the first level |
-| Portal | ✅ emulated portal; the portal menu opens by itself at the prompt, with the game's collection cards and fonts |
+| Portal | ✅ emulated portal; the portal menu opens by itself at the prompt, with the game's collection cards and fonts, hats and upgrade trees |
+| Settings | ✅ F4 menu like the other games': native 3D picture, the game's FXAA at the internal resolution, bloom and motion blur strength, ultrawide with the HUD at the edges, the controller picture |
 
 ## Building
 
