@@ -271,6 +271,22 @@ SettingsPage PortalPage() {
        "When the game asks for a Skylander, the portal menu comes up for that player.",
        "Wenn das Spiel nach einem Skylander fragt, \xC3\xB6" "ffnet sich das Portal-Men\xC3\xBC "
        "f\xC3\xBCr diesen Spieler."});
+  // Trap Team's portal has a speaker (the trapped villains talk through it, TrapTeamRecomp #10).
+  page.settings.push_back(
+      {"portal_audio", "Portal speaker", "Portal-Lautsprecher",
+       "Trapped villains talk through the portal's speaker. With the emulated portal it plays on "
+       "the PC's speakers, with a real portal on the portal itself.",
+       "Gefangene B\xC3\xB6sewichte sprechen \xC3\xBC" "ber den Lautsprecher des Portals. Mit dem "
+       "emulierten Portal kommt er aus den Lautsprechern des PCs, mit einem echten Portal aus dem "
+       "Portal selbst.",
+       {{"auto", "On", "An"}, {"off", "Off", "Aus"}}});
+  Setting speaker_volume{"portal_speaker_volume", "Portal speaker volume", "Lautst\xC3\xA4rke des Portals",
+                         "How loud the portal speaker plays on the PC.",
+                         "Wie laut der Portal-Lautsprecher am PC spielt.",
+                         {{"1", "100 %", "100 %"}, {"0.75", "75 %", "75 %"}, {"0.5", "50 %", "50 %"},
+                          {"0.25", "25 %", "25 %"}}};
+  speaker_volume.restart = true;  // the PC's speaker stream takes it when the portal is made
+  page.settings.push_back(speaker_volume);
   page.settings.push_back(
       {"portal_speaker_overlay", "Show who talks", "Zeigen, wer spricht",
        "While a villain in a trap talks through the portal (the PC's speakers), its picture shows "
