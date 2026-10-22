@@ -26,6 +26,7 @@
 #include "dev/input_script.h"
 #include "dev/write_watch.h"
 #include "hooks/ultrawide_hook.h"
+#include "game/controller_picture.h"
 #include "game/game_fonts.h"
 #include "game/portal_prompt_watch.h"
 #include "game/game_text.h"
@@ -153,6 +154,7 @@ class TrapteamrecompApp : public rex::ReXApp {
     trapteamrecomp::InstallToyPortraits(game_data_root_);
     trapteamrecomp::InstallToyHats(game_data_root_);
     trapteamrecomp::InstallToyUpgrades(game_data_root_);
+    trapteamrecomp::InstallControllerPicture(game_data_root_);
     trapteamrecomp::InstallGameText(game_data_root_);
     // The portal menu opens by itself when the game asks for a Skylander.
     trapteamrecomp::StartPortalPromptWatch(runtime()->memory());
@@ -259,6 +261,8 @@ class TrapteamrecompApp : public rex::ReXApp {
           rex::ui::ProcessKeyEvent(event);
         }),
         settings_path_);
+    // The controls page shows the menu buttons on the game's own controller picture.
+    skylanders::SetControllerPicture(trapteamrecomp::ControllerPictureLayout());
     skylanders::RegisterPortalOverlay(drawer);
   }
 

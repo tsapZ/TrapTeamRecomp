@@ -44,6 +44,7 @@ set(TRAPTEAMRECOMP_SOURCES
     src/game/alchemy/iga11_archive.cpp
     src/game/alchemy/igz8_file.cpp
     src/game/alchemy/lzma_decoder.cpp
+    src/game/controller_picture.cpp
     src/game/kernel_stubs.cpp
     src/game/portal_prompt_watch.cpp
     src/game/game_fonts.cpp
