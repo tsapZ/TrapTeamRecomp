@@ -14,5 +14,7 @@ namespace trapteamrecomp {
 void StartPortalPromptWatch(rex::memory::Memory* memory);
 // Stops and joins it; call before the runtime (and its guest memory) goes away.
 void StopPortalPromptWatch();
+// Whether the game is busy with a figure change: its prompt or a Skylander's arrival (see the .cpp).
+bool PortalPromptActive();
 
 }  // namespace trapteamrecomp

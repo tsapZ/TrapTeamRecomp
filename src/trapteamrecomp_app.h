@@ -158,6 +158,8 @@ class TrapteamrecompApp : public rex::ReXApp {
     trapteamrecomp::InstallGameText(game_data_root_);
     // The portal menu opens by itself when the game asks for a Skylander.
     trapteamrecomp::StartPortalPromptWatch(runtime()->memory());
+    // Items go on and off the portal only once the player's Skylander is back in the game.
+    skylanders::SetGameBusyProvider([] { return trapteamrecomp::PortalPromptActive(); });
     // The achievements list (F7, F4 > Spiel > Erfolge); the kernel's list exists from launch on.
     skylanders::RegisterAchievementsMenu(
         imgui_drawer(), immediate_drawer(), &app_context(), runtime(),

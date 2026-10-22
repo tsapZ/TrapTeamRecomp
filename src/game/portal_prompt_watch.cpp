@@ -22,6 +22,12 @@
 // (2026-10-21). The menu therefore opens for the first player without a Skylander on the emulated
 // portal (skylanders::AutoOpenPortalMenuForPlayerWithoutFigure), the order in which the game itself
 // hands figures to players: player 1 at the first prompt, player 2 while player 1 plays.
+//
+// The same variable tells when the game is busy with a figure change, for the portal menu's magic
+// items (skylanders::SetGameBusyProvider): after a figure arrives the state goes from "Need Toy" to
+// "Player State - Clear" for the Skylander's arrival (about 7 s in the logs of 2026-10-21: placed
+// at 10.6 s, "Clear" at 11.0 s, the variable gone at 18.2 s), and the variable goes away when the
+// player is back in play. So the game counts as busy while the variable has a state.
 
 #include "portal_prompt_watch.h"
 
@@ -64,6 +70,7 @@ constexpr auto kOpenDelay = std::chrono::milliseconds(100);
 
 std::thread g_thread;
 std::atomic<bool> g_stop{false};
+std::atomic<bool> g_busy{false};  // the player state variable had a state at the last poll
 
 // How many bytes from `address` on are committed, readable guest memory (0 if none).
 uint32_t ReadableBytes(rex::memory::Memory* memory, uint32_t address) {
@@ -159,6 +166,7 @@ void Watch(rex::memory::Memory* memory) {
       REXLOG_INFO("Portal prompt: player state \"{}\"", state);
       last_state = state;
     }
+    g_busy.store(!state.empty());
     std::optional<uint32_t> player;
     if (state == kNeedToyState) player = 0;
     if (player != waiting_for) {
@@ -189,5 +197,7 @@ void StopPortalPromptWatch() {
   g_stop.store(true);
   if (g_thread.joinable()) g_thread.join();
 }
+
+bool PortalPromptActive() { return g_busy.load(); }
 
 }  // namespace trapteamrecomp
