@@ -3,7 +3,9 @@
 #define MyAppExeName "trapteamrecompiled.exe"
 
 [Setup]
-AppId={{C3E00C3F-6CE0-4100-BD9B-13F9B4A8CCBA}
+; Each game its own AppId: Windows keeps one uninstall entry per AppId and Inno Setup finds a
+; previous install by it, so a shared one made the games' setups take each other's folder.
+AppId={{9A774956-7256-4E2C-A3D6-418903FC71B6}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 DefaultDirName={localappdata}\Programs\{#MyAppName}
