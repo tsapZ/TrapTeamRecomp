@@ -145,3 +145,12 @@ Updated at the end of every session. Only record what a build actually did.
 - **Figure pictures for the launcher** (skylanders-portal e87feb3): while the game runs, every figure picture it reads from the disc goes into `Documents\Skylanders\Pictures\<game>` once, for the launcher's figure library; later the same night (skylanders-portal 7f6a34a) also the hats it knows (hats.txt, their pictures) and the upgrade trees of the figures in the figure folder; and
 (skylanders-portal ca65339) the game's achievement list with the title's own pictures, for the
 launcher's achievements screen.
+
+## 2026-10-22: day
+
+- **Motion blur (F4 > Grafik > Bewegungsunschärfe), as in Swap Force, off by default:** the
+  exposure time the renderer stores into the motion blur attr (`sub_82304028`, 0x8230427C, the same
+  store as Swap Force's) is scaled by the setting. Checked in the first level with the figure
+  running and the camera turning: the picture's mean gradient 4.34 / 4.57 at 0, 4.11 / 4.10 at the
+  game's 1, 3.98 / 3.76 at 2, the ground and rocks visibly smeared at 1 and 2. Bloom is still open
+  (#5): Trap Team's bloom is per object, and the values copied for it change nothing visible.

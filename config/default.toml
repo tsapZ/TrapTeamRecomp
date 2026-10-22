@@ -103,6 +103,17 @@ address = 0x821DD2D4
 name = "UltrawideHudHook"
 registers = ["f29", "f31"]
 
+# 0x8230427C: sub_82304028 stores the motion blur exposure time (f13: the environment's
+# _motionBlurExposureTime, +648, or another value when its override is off or on a camera cut)
+# into the motion blur attr (+144 of the object at +388 of its this), as SwapForceRecomp's
+# sub_82BA3390 does (named by comparing the instructions, the same attr offset). The hook scales f13
+# by motion_blur_strength; 0 is what the game itself uses for "no blur", and f13 is read back from
+# the attr after the store.
+[[midasm_hook]]
+address = 0x8230427C
+name = "MotionBlurStrengthHook"
+registers = ["f13"]
+
 [functions]
 # Function starts the analyzer put one instruction late: it reached each function through a branch
 # to its second instruction, while the real start is only in a pointer table (a vtable). Calling
