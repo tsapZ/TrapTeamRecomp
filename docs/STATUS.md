@@ -133,3 +133,13 @@ Updated at the end of every session. Only record what a build actually did.
 - **Magic items' German names** from rom/item (11 matched to the catalog by their English name; the newer items' archives have no English text to match).
 - **Portal library** (cbc71c6, 0eb2564): the cards say "Fahrzeug", "Sensei", "Falle", "Mini-Skylander", "Serie 2" instead of the catalog's English plurals; a plain hat symbol where a game has no hat picture.
 - **New issues** for what the other games' menus have and this one doesn't yet: #5 bloom and motion blur options, #6 item changes waiting for the figure change, #7 the Swap Force halves' upgrades, #8 the game's controller picture.
+
+## 2026-10-22: later the same night
+
+- **The controls page shows the game's controller picture** (level/Title.arc's controls_360.png, the photo of the pad with its light blue lines and their shadow painted over), #8 closed.
+- **The text font's button placeholders left out**: its first glyph list has a white circle for most code points its symbol list draws as buttons (& * < = > [ ] ` { }), so every ">" of the settings menu was a dot.
+- **Item changes wait for the figure change** (portal_prompt_watch.cpp): the game counts as busy while its player state variable has a state ("Need Toy", then "Clear" during the Skylander's arrival, about 7 s), #6 closed.
+- The settings example and the installer's template set skip_intro twice (an invalid file); fixed, and the example says 60 FPS.
+- **Settings file read even with a repeated key** (SDK fork 96273bb): a key set twice in a table makes the whole TOML file invalid, and the game then ignored every setting in it without a visible error (the error went to a log that didn't exist yet). The SDK now reads such a file with the repeats left out and logs which key was repeated.
+- **`--settings_schema=<file>`** (skylanders-portal 25dec20): the game writes its F4 menu's pages with their values and quits before a window opens; the Core of Light launcher shows them as the game's settings and writes into this game's settings file.
+- **Figure pictures for the launcher** (skylanders-portal e87feb3): while the game runs, every figure picture it reads from the disc goes into `Documents\Skylanders\Pictures\<game>` once, for the launcher's figure library.
