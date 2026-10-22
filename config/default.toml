@@ -114,6 +114,20 @@ address = 0x8230427C
 name = "MotionBlurStrengthHook"
 registers = ["f13"]
 
+# Bloom strength (bloom_strength, as in Swap Force; #5). sub_8230E670 copies the rendered
+# environment's _bloomLuminanceCutoff and the inner, outer and diffuse scales (+140...+152, the
+# reflection table at 0x8211A5D0) into the float4 at +16 of the object at 84(r31): the pixel shader
+# constant the scene's draws read. 0x8230EBA4 is the call right after the four stores (stfs
+# f11,28(r11), the diffuse scale, is the instruction before), so r11 still points at that object
+# and every value is written. Found
+# 2026-10-22 from a memory scan for the level's values (1.01, 0.5, 1.5) and the loads of +140...
+# +152; the hook scales only the three just written, from the environment afresh each call, so
+# it never compounds, and leaves the cutoff (src/hooks/post_effects_hook.cpp).
+[[midasm_hook]]
+address = 0x8230EBA4
+name = "BloomStrengthHook"
+registers = ["r11"]
+
 [functions]
 # Function starts the analyzer put one instruction late: it reached each function through a branch
 # to its second instruction, while the real start is only in a pointer table (a vtable). Calling

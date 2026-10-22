@@ -152,5 +152,14 @@ launcher's achievements screen.
   exposure time the renderer stores into the motion blur attr (`sub_82304028`, 0x8230427C, the same
   store as Swap Force's) is scaled by the setting. Checked in the first level with the figure
   running and the camera turning: the picture's mean gradient 4.34 / 4.57 at 0, 4.11 / 4.10 at the
-  game's 1, 3.98 / 3.76 at 2, the ground and rocks visibly smeared at 1 and 2. Bloom is still open
-  (#5): Trap Team's bloom is per object, and the values copied for it change nothing visible.
+  game's 1, 3.98 / 3.76 at 2, the ground and rocks visibly smeared at 1 and 2.
+- **Bloom (F4 > Grafik > Leuchten (Bloom)), as in Swap Force (#5):** the level keeps its bloom in
+  the environment settings, one object per zone (19 in the first level), _bloomLuminanceCutoff
+  at +140 and the inner, outer and diffuse scales after it. `sub_8230E670` copies the four from
+  the environment it renders with into the pixel shader constant the scene's draws read; the
+  hook after those stores (0x8230EBA4) scales the three amounts. The copy into the renderer's
+  CBloomData (`sub_82304CF0`), tried first, doesn't reach the draws (a RenderDoc capture with
+  its cutoff forced to 0 still had the level's 1.01 in 288 draws); a scan of guest memory for
+  the level's values found the zones. Checked in the first level, the figure standing: the
+  picture's mean brightness 98.8 at 0 (clouds and sky without glow), 111.5 at the game's 1,
+  126.7 at 3 (strong glow around the clouds and the island).

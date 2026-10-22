@@ -120,6 +120,16 @@ SettingsPage GraphicsPage() {
        {{"none", "Off", "Aus"}, {"fxaa", "FXAA", "FXAA"}, {"fxaa_extreme", "FXAA strong",
                                                          "FXAA stark"}}});
   page.settings.push_back(
+      {"bloom_strength", "Glow (bloom)", "Leuchten (Bloom)",
+       "The soft glow the game puts around bright areas and lights. Off: a clearer, slightly "
+       "darker picture; strong: more glow. Costs nothing.",
+       "Der weiche Schein, den das Spiel um helle Stellen und Lichter legt. Aus: ein klareres, "
+       "etwas dunkleres Bild; stark: mehr Schein. Kostet nichts.",
+       {{"0", "Off", "Aus"},
+        {"0.5", "Weak", "Schwach"},
+        {"1", "As in the game", "Wie im Spiel"},
+        {"1.5", "Strong", "Stark"}}});
+  page.settings.push_back(
       {"motion_blur_strength", "Motion blur", "Bewegungsunsch\xC3\xA4rfe",
        "Smears fast movement and the whole picture when the camera turns quickly. Motion blur "
        "makes 30 FPS look smoother; at higher frame rates it mostly blurs, so it is off by "
