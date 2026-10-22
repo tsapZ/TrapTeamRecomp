@@ -16,7 +16,11 @@
 // (-3, -4 in the title font) look like a horizontal and vertical spacing but are not what makes
 // up the difference. The first list's page is the igImage2 "fonts/360/font_001.png" (1024x1024, 16 bits per texel, Xbox 360 tiled with its
 // mip levels after it, the first byte the coverage); the second list (18 glyphs on
-// "font_001_rgb.png": button symbols and repeats of the first list's) is left out.
+// "font_001_rgb.png": button symbols and repeats of the first list's) is left out. Its code points
+// (& * < = > [ \ ] ^ _ ` { | } ~ and three Greek letters) stand for buttons in the game's texts,
+// and the first list has a plain white circle of 84x84 pixels for most of them, the shape the
+// symbol is drawn over: those are left out of the first list too, so the menus' own font draws
+// them (seen 2026-10-22: every ">" of the settings menu came out as a white dot).
 // The title font, the game's bold one for headings, is "font_002" in the scene of
 // permanent/global.bld, laid out the same: size 110, padding 4, 158 glyphs on the 1024x664 page
 // "fonts/360/font_002.png" (format 0x1CB93819 too). Read 2026-10-21 from this disc; the decoded
@@ -30,6 +34,7 @@
 #include <cstring>
 #include <string>
 #include <string_view>
+#include <unordered_set>
 #include <vector>
 
 #include <rex/logging.h>
@@ -55,6 +60,7 @@ constexpr uint32_t kCoverageFormat = 0x1CB93819;
 constexpr uint32_t kFontSizeField = 0x0C;
 constexpr uint32_t kPaddingField = 0x48;  // 4.0: around every cell's letter, on each side
 constexpr uint32_t kGlyphListField = 0x40;
+constexpr uint32_t kSymbolListField = 0x44;  // the button symbols (see the top)
 constexpr uint32_t kListCountField = 0x08;
 constexpr uint32_t kListItems = 0x18;
 constexpr uint32_t kCodepointField = 0x08;
@@ -148,12 +154,22 @@ std::shared_ptr<const GameFont> ReadFont(const std::filesystem::path& archive_pa
   if (!list) return nullptr;
   const float padding = F32(*igz, font_object, kPaddingField);
   const float shorter = std::isfinite(padding) && padding > 0 && padding < 32 ? 2 * padding : 0.0f;
+  std::unordered_set<uint32_t> symbols;
+  if (const auto symbol_list = igz->Pointer(igz->Field(font_object, kSymbolListField))) {
+    const uint32_t symbol_count = igz->Field(*symbol_list, kListCountField);
+    for (uint32_t k = 0; k < symbol_count && k < 4096; ++k) {
+      if (const auto g = igz->Pointer(igz->Field(*symbol_list, kListItems + 4 * k))) {
+        symbols.insert(igz->Field(*g, kCodepointField) >> 16);
+      }
+    }
+  }
   const uint32_t count = igz->Field(*list, kListCountField);
   for (uint32_t k = 0; k < count && k < 4096; ++k) {
     const auto g = igz->Pointer(igz->Field(*list, kListItems + 4 * k));
     if (!g) continue;
     GameFontGlyph glyph;
     glyph.codepoint = igz->Field(*g, kCodepointField) >> 16;
+    if (symbols.contains(glyph.codepoint)) continue;
     glyph.advance = F32(*igz, *g, kAdvanceField) - shorter;
     glyph.x_offset = F32(*igz, *g, kOffsetXField);
     glyph.y_offset = F32(*igz, *g, kOffsetYField);
