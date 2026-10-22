@@ -163,3 +163,7 @@ launcher's achievements screen.
   the level's values found the zones. Checked in the first level, the figure standing: the
   picture's mean brightness 98.8 at 0 (clouds and sky without glow), 111.5 at the game's 1,
   126.7 at 3 (strong glow around the clouds and the island).
+- **Nothing skipped by default** (the owner's choice, 2026-10-22): `skip_intro` is off, the logo
+  movies play as on the console (the option skips them); the settings templates say so too. The
+  16x texture filter now comes from skylanders-portal (`ApplyGraphicsDefaults`), so the Core of
+  Light launcher shows 16x as the game uses it.
