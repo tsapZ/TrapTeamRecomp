@@ -41,6 +41,7 @@
 #include "portal_rex/player_menu.h"
 #include "portal_rex/settings_menu.h"
 #include "portal_rex/settings_schema.h"
+#include "portal_rex/title_music.h"
 #include "settings_pages.h"
 #include "portal_rex/portal_rex.h"
 #include "xex_verify.h"
@@ -102,6 +103,12 @@ class TrapteamrecompApp : public rex::ReXApp {
     skylanders::ShutdownSettingsMenu();
   }
 
+  // The title screen's music: of the two tracks the game streams from the title level's archive
+  // there (found with a run logging its file reads, 2026-10-22), the music; the other is a quiet
+  // ambience under it (-17 dB in a recording of the title, which the music alone matches to 0.99)
+  // with a loop of its own, so it is left out.
+  static skylanders::TitleMusicSource TitleMusic() { return {{"level/title.arc", "0x03c98809.wav.hz"}}; }
+
   void OnPreSetup(rex::RuntimeConfig& config) override {
     // Before the GPU plugin creates its device (testing only, gpu_crash_diagnostics).
     trapteamrecomp::EnableGpuCrashDiagnostics();
@@ -146,6 +153,8 @@ class TrapteamrecompApp : public rex::ReXApp {
     // then quit, before a window opens (--settings_schema, settings_schema.h).
     skylanders::WriteSettingsSchemaIfRequested(
         config, [] { return trapteamrecomp::BuildSettingsPages([] {}); }, settings_path_);
+    // For the launcher: the title music from the disc as a file, then quit (--export_title_music).
+    skylanders::ExportTitleMusicIfRequested(game_data_root(), TitleMusic());
   }
 
   void OnPostSetup() override {
@@ -155,6 +164,9 @@ class TrapteamrecompApp : public rex::ReXApp {
     // The figure pictures this game reads from the disc, also as files for the Core of Light
     // launcher's figure library (Documents\Skylanders\Pictures\Trap Team).
     skylanders::StartFigurePictureCache(skylanders::SharedPicturesDir(user_data_root(), "Trap Team"));
+    // And the title music, once (title_music.h).
+    skylanders::StartTitleMusicExport(game_data_root(), TitleMusic(),
+                                      skylanders::SharedPicturesDir(user_data_root(), "Trap Team"));
     // A real crash logs where in the game it happened (guest call chain and registers).
     trapteamrecomp::InstallCrashReport(runtime()->memory());
     // Pictures for the portal menu from the game's own files: the cards of its collection
