@@ -26,7 +26,6 @@
 #include "dev/input_script.h"
 #include "dev/write_watch.h"
 #include "hooks/ultrawide_hook.h"
-#include "game/continue_slot.h"
 #include "game/controller_picture.h"
 #include "game/game_fonts.h"
 #include "game/portal_prompt_watch.h"
@@ -186,8 +185,6 @@ class TrapteamrecompApp : public rex::ReXApp {
     trapteamrecomp::StartPortalPromptWatch(runtime()->memory());
     // Items go on and off the portal only once the player's Skylander is back in the game.
     skylanders::SetGameBusyProvider([] { return trapteamrecomp::PortalPromptActive(); });
-    // Weiterspielen: the slot screen's cursor to the save played last before the continue's A.
-    trapteamrecomp::StartContinueSlot(runtime()->memory(), user_data_root());
     // Who is talking from a trap on the portal: the villain's picture with a ring (#10).
     skylanders::RegisterSpeakerOverlay(imgui_drawer());
     // The achievements list (F7, F4 > Spiel > Erfolge); the kernel's list exists from launch on.

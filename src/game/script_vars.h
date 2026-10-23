@@ -1,6 +1,6 @@
 #pragma once
 
-// Reading the game script's variables from guest memory (portal_prompt_watch.cpp, continue_slot.cpp).
+// Reading the game script's variables from guest memory (portal_prompt_watch.cpp).
 //
 // The game's scripts keep their variables as ScriptReference objects: vtable 0x821095A8, +8 the
 // name, +0x1C the value. Names are pooled strings, and the pointers to them are tagged: the

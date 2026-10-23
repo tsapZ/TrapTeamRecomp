@@ -222,3 +222,7 @@ launcher's achievements screen.
   comparing the script heap's variables with the cursor on slot 1, 2, 4 and 2. Checked by script:
   no input, the cursor went to slot 2 and "Spiel fortsetzen" loaded that save. The script variable
   helpers are shared now (`src/game/script_vars.h`, also used by the portal prompt watch).
+
+- **Weiterspielen removed again** (the owner's decision the same evening): blind A presses through
+  the menus are too unsafe, and a game is at its title in seconds, where the player picks the right
+  save himself. `src/game/continue_slot.cpp` and the library's continue step are gone again.
