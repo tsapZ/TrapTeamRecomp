@@ -131,7 +131,7 @@ Updated at the end of every session. Only record what a build actually did.
 - **Hats in the details view** (src/game/toy_hats.cpp, as Giants' menu): the names from permanent/global.bld's "HatName(kkk)" texts in ENGLISH.pak and GERMAN.pak (kkk is the hat number minus one up to 95 and the number itself from 97 on, checked against SuperChargers' hat table: all 245 names agree), the bonuses from misc/StoreItem_Hat_kkk.bld (72 hats), the icons from the .arc next to it (35), the stat symbols from character/UI_StatsScreen_Extra.bld. Checked on a copy of a Chop Chop with the flower hat: "Blumenhut", its icon, "+2 Kritischer Treffer", "+2 Rüstung" with their symbols.
 - **Upgrades in the details view** (src/game/toy_upgrades.cpp, ported from Giants, and src/game/game_text.cpp for the scenes' texts): 87 Skylanders from their character archives, the Wow Pow by the figure's year (upgrade 10 + the year), this game's button glyphs ("]" X, "{" Y, "}" B). Checked on the Chop Chop copy: the whole tree with the pictures, the German path names and the bought upgrades ticked. Swap Force's halves don't get theirs yet (#7).
 - **Magic items' German names** from rom/item (11 matched to the catalog by their English name; the newer items' archives have no English text to match).
-- **Portal library** (cbc71c6, 0eb2564): the cards say "Fahrzeug", "Sensei", "Falle", "Mini-Skylander", "Serie 2" instead of the catalog's English plurals; a plain hat symbol where a game has no hat picture.
+- **Portal library** (83cc22e, 141d32e): the cards say "Fahrzeug", "Sensei", "Falle", "Mini-Skylander", "Serie 2" instead of the catalog's English plurals; a plain hat symbol where a game has no hat picture.
 - **New issues** for what the other games' menus have and this one doesn't yet: #5 bloom and motion blur options, #6 item changes waiting for the figure change, #7 the Swap Force halves' upgrades, #8 the game's controller picture.
 
 ## 2026-10-22: later the same night
@@ -140,10 +140,10 @@ Updated at the end of every session. Only record what a build actually did.
 - **The text font's button placeholders left out**: its first glyph list has a white circle for most code points its symbol list draws as buttons (& * < = > [ ] ` { }), so every ">" of the settings menu was a dot.
 - **Item changes wait for the figure change** (portal_prompt_watch.cpp): the game counts as busy while its player state variable has a state ("Need Toy", then "Clear" during the Skylander's arrival, about 7 s), #6 closed.
 - The settings example and the installer's template set skip_intro twice (an invalid file); fixed, and the example says 60 FPS.
-- **Settings file read even with a repeated key** (SDK fork 96273bb): a key set twice in a table makes the whole TOML file invalid, and the game then ignored every setting in it without a visible error (the error went to a log that didn't exist yet). The SDK now reads such a file with the repeats left out and logs which key was repeated.
-- **`--settings_schema=<file>`** (skylanders-portal 25dec20): the game writes its F4 menu's pages with their values and quits before a window opens; the Core of Light launcher shows them as the game's settings and writes into this game's settings file.
-- **Figure pictures for the launcher** (skylanders-portal e87feb3): while the game runs, every figure picture it reads from the disc goes into `Documents\Skylanders\Pictures\<game>` once, for the launcher's figure library; later the same night (skylanders-portal 7f6a34a) also the hats it knows (hats.txt, their pictures) and the upgrade trees of the figures in the figure folder; and
-(skylanders-portal ca65339) the game's achievement list with the title's own pictures, for the
+- **Settings file read even with a repeated key** (SDK fork 8761248): a key set twice in a table makes the whole TOML file invalid, and the game then ignored every setting in it without a visible error (the error went to a log that didn't exist yet). The SDK now reads such a file with the repeats left out and logs which key was repeated.
+- **`--settings_schema=<file>`** (skylanders-portal 4521ced): the game writes its F4 menu's pages with their values and quits before a window opens; the Core of Light launcher shows them as the game's settings and writes into this game's settings file.
+- **Figure pictures for the launcher** (skylanders-portal e17786b): while the game runs, every figure picture it reads from the disc goes into `Documents\Skylanders\Pictures\<game>` once, for the launcher's figure library; later the same night (skylanders-portal 6c3c6a3) also the hats it knows (hats.txt, their pictures) and the upgrade trees of the figures in the figure folder; and
+(skylanders-portal f571d26) the game's achievement list with the title's own pictures, for the
 launcher's achievements screen.
 
 ## 2026-10-22: day
@@ -170,8 +170,8 @@ launcher's achievements screen.
 
 ## 2026-10-23: session log (night)
 
-- **Title music from the disc** for the Core of Light launcher (skylanders-portal 7bd504a,
-  rexglue-sdk 1e74678): `--export_title_music=<file.wav>` decodes the track the title screen
+- **Title music from the disc** for the Core of Light launcher (skylanders-portal 6e5c284,
+  rexglue-sdk 63e87be): `--export_title_music=<file.wav>` decodes the track the title screen
   streams (found with a run logging the game's file reads) from XMA2 with the SDK's FFmpeg and
   quits before a window opens, in under a second; each normal start leaves `title_music.wav` in
   the game's picture folder once. Checked: 0x03c98809.wav.hz of level/title.arc (52.7 s); a quiet ambience under it left out; identical to FFmpeg 8.1's own decode of the
@@ -180,10 +180,10 @@ launcher's achievements screen.
   starten" (both ask, "Nein" first; restart not offered when the launcher started the game; the
   new instance waits for the old one), the player menu is a row on the Portal page, the settings
   menu's buttons have no "Aus" any more (it locked a pad out), "Alle Einstellungen" says it is for
-  keyboard and mouse (skylanders-portal 60e8eeb).
-- **HD texture packs:** rexglue-sdk f02a4b5 dumps the game's BC1-BC3 textures
+  keyboard and mouse (skylanders-portal 5fff7aa).
+- **HD texture packs:** rexglue-sdk 37d3e77 dumps the game's BC1-BC3 textures
   (`texture_dump_dir`) and loads `<hash>.dds` replacements of any size (`texture_replace_dir`);
-  a pack in `Documents\Skylanders\Textures\Trap Team` is used by itself (skylanders-portal ebb5e85).
+  a pack in `Documents\Skylanders\Textures\Trap Team` is used by itself (skylanders-portal 94175f0).
   Checked in Swap Force's hub (see SwapForceRecomp docs/texture-packs.md, #62).
 - **F4 > Grafik:** "Schärfe-Stärke" (CAS's additional sharpness) and "Farbverläufe glätten
   (Dithering)", dithering on by default.
@@ -193,7 +193,7 @@ launcher's achievements screen.
 - **Who talks from a trap (#10, closed):** a trapped villain's voice comes from the portal
   speaker (PC speakers with the emulated portal); meanwhile the villain's picture from the villain
   vault (misc/ui_villainvault_stream.arc, 46 pictures) shows at the bottom left with a green ring
-  pulsing to the voice (skylanders-portal 52b0fe0). Checked by script: a trap with Chompy Mage put
+  pulsing to the voice (skylanders-portal 1fc25fb). Checked by script: a trap with Chompy Mage put
   on in Chapter 1, the game summoned him, the speaker sounded after 5 s (2.2 s) and again a minute
   later, the overlay showed. F4 > Portal: "Portal-Lautsprecher", its volume, "Zeigen, wer
   spricht". Input script: `trap <slot> <villain>`.
