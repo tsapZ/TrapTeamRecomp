@@ -11,11 +11,22 @@
 // name ("Anvil Rain" / "Ambossregen"). Which catalog figure an archive is: the catalog entry with
 // the same English name, so no table is needed here; the German name then wins for the plain
 // variants (an alternate deco keeps the catalog's, as in Giants).
+// This game's own items (Hand of Fate, Piggy Bank, Rocket Ram, Tiki Speaky) have no texts in their
+// archives; they are named, like every item and the older adventure packs, in the game's toy lists
+// in rom/character/Init_Setup.bld: the texts "Item_List" and "Item_List - Legacy Location Pieces",
+// one line per toy, "<toy id>,<archive>,<name>" ("230,Item_HelpingHand,Schicksalshand" in the
+// German pack). Read 2026-10-23; a toy the item archives didn't name gets the list's name (the list
+// shortens a few, "Kanone" for the Dragonfire Cannon, which is why the archives come first). This
+// game's adventure packs are in "Location_List" as "<toy id>,<archive>,level=<number>"; their
+// name is the level's, "Level_<number>_<name>(1)" in rom/permanent/global.bld
+// ("Level_327_Kaos_Exp(1)": Mirror of Mystery).
 
 #include "game_text.h"
 
 #include <algorithm>
 #include <cctype>
+#include <charconv>
+#include <iterator>
 #include <mutex>
 #include <string_view>
 #include <thread>
@@ -38,12 +49,20 @@ constexpr char kScene[] = "level.bld";
 constexpr char kEnglishPack[] = "ENGLISH.pak";
 constexpr char kGermanPack[] = "GERMAN.pak";
 constexpr std::string_view kNameSuffix = "_String";
+constexpr char kToyListArchive[] = "character/Init_Setup.bld";
+constexpr std::string_view kToyLists[] = {"Item_List", "Item_List - Legacy Location Pieces",
+                                          "Location_List"};
+constexpr std::string_view kLevelField = "level=";
+constexpr char kGlobalArchive[] = "permanent/global.bld";
+constexpr std::string_view kLevelPrefix = "Level_";       // "Level_327_Kaos_Exp(1)"
+constexpr std::string_view kLevelNameSuffix = "(1)";
 constexpr uint32_t kKeyField = 0x08;    // StringInfo
 constexpr uint32_t kTextsField = 0x18;  // LanguagePackInfo
 constexpr uint16_t kAlternateDeco = 0x400;
 
 std::mutex g_mutex;
 std::unordered_map<uint16_t, std::string> g_names;  // by catalog id, UTF-8
+std::unordered_map<uint16_t, std::string_view> g_plain_names;  // the catalog's, by id
 
 void AppendUtf8(std::string& out, uint32_t c) {
   if (c < 0x80) {
@@ -89,6 +108,21 @@ std::string Lower(std::string s) {
   return s;
 }
 
+// A text's lines, without line ends.
+std::vector<std::string> SplitLines(const std::string& text) {
+  std::vector<std::string> lines;
+  size_t start = 0;
+  while (start <= text.size()) {
+    size_t end = text.find('\n', start);
+    if (end == std::string::npos) end = text.size();
+    std::string line = text.substr(start, end - start);
+    if (!line.empty() && line.back() == '\r') line.pop_back();
+    if (!line.empty()) lines.push_back(std::move(line));
+    start = end + 1;
+  }
+  return lines;
+}
+
 // The name text of an item archive in `pack`: its scene's first "..._String" text.
 std::string ItemName(alchemy::Iga11Archive& archive, const std::string& pack) {
   for (const auto& [key, text] : ReadSceneTexts(archive, pack)) {
@@ -118,7 +152,67 @@ void Load(std::filesystem::path rom, std::string pack) {
     g_names[id->second] = std::move(name);
     ++found;
   }
-  REXLOG_INFO("Game text: {} item names from {}", found, pack);
+  // The levels' names by number ("327"), for the adventure packs of Location_List.
+  std::unordered_map<std::string, std::string> level_names;
+  if (auto global = alchemy::Iga11Archive::Open(rom / kGlobalArchive)) {
+    for (auto& [key, text] : ReadSceneTexts(*global, pack)) {
+      if (!key.starts_with(kLevelPrefix) || !key.ends_with(kLevelNameSuffix)) continue;
+      const size_t number = kLevelPrefix.size(), end = key.find('_', number);
+      if (end != std::string::npos) level_names.emplace(key.substr(number, end - number), std::move(text));
+    }
+  }
+  int listed = 0;
+  if (auto setup = alchemy::Iga11Archive::Open(rom / kToyListArchive)) {
+    for (const auto& [key, text] : ReadSceneTexts(*setup, pack)) {
+      if (std::find(std::begin(kToyLists), std::end(kToyLists), key) == std::end(kToyLists)) continue;
+      for (const auto& line : SplitLines(text)) {
+        // "<toy id>,<archive>,<name>" or "<toy id>,<archive>,level=<number>"
+        const size_t first = line.find(','), second = line.find(',', first + 1);
+        if (first == std::string::npos || second == std::string::npos) continue;
+        uint32_t id = 0;
+        const auto [end, ec] = std::from_chars(line.data(), line.data() + first, id);
+        std::string name = line.substr(second + 1);
+        while (!name.empty() && (name.back() == ',' || name.back() == ' ')) name.pop_back();
+        if (name.starts_with(kLevelField)) {
+          auto level = level_names.find(name.substr(kLevelField.size()));
+          name = level == level_names.end() ? std::string() : level->second;
+        }
+        if (ec != std::errc() || end != line.data() + first || id > 0xFFFF || name.empty()) continue;
+        std::lock_guard<std::mutex> lock(g_mutex);
+        if (g_names.emplace(uint16_t(id), std::move(name)).second) ++listed;
+      }
+    }
+  }
+  // The catalog's name for each toy's plain figure (its lowest variant), for Name().
+  std::unordered_map<uint16_t, std::string_view> plain;
+  std::unordered_map<uint16_t, uint16_t> lowest;
+  for (const auto& sky : skylanders::portal::AllSkylanders()) {
+    auto [it, added] = lowest.emplace(sky.id, sky.variant);
+    if (added || sky.variant < it->second) {
+      it->second = sky.variant;
+      plain[sky.id] = sky.name;
+    }
+  }
+  {
+    std::lock_guard<std::mutex> lock(g_mutex);
+    g_plain_names = std::move(plain);
+  }
+  REXLOG_INFO("Game text: {} item names from {}, {} more from the toy lists", found, pack, listed);
+}
+
+// The game's name for a catalog figure: the toy's for its plain figure, plus what the catalog adds
+// to that ("Midnight Museum (LightCore)" -> "Mitternachts-Museum (LightCore)"); a variant the
+// catalog names otherwise ("Platinum Treasure Chest") and an alternate deco keep the catalog's.
+std::optional<std::string> Name(uint16_t id, uint16_t variant) {
+  if (variant & kAlternateDeco) return std::nullopt;
+  std::lock_guard<std::mutex> lock(g_mutex);
+  auto it = g_names.find(id);
+  if (it == g_names.end()) return std::nullopt;
+  const auto* sky = skylanders::portal::FindSkylander(id, variant);
+  auto base = g_plain_names.find(id);
+  if (!sky || base == g_plain_names.end() || sky->name == base->second) return it->second;
+  if (!sky->name.starts_with(base->second)) return std::nullopt;
+  return it->second + std::string(sky->name.substr(base->second.size()));
 }
 
 }  // namespace
@@ -157,13 +251,7 @@ std::vector<std::pair<std::string, std::string>> ReadSceneTexts(alchemy::Iga11Ar
 
 void InstallGameText(const std::filesystem::path& rom_dir) {
   std::thread(Load, rom_dir, LanguagePackName()).detach();
-  skylanders::SetFigureNameProvider([](uint16_t id, uint16_t variant) -> std::optional<std::string> {
-    if (variant & kAlternateDeco) return std::nullopt;
-    std::lock_guard<std::mutex> lock(g_mutex);
-    auto it = g_names.find(id);
-    if (it == g_names.end()) return std::nullopt;
-    return it->second;
-  });
+  skylanders::SetFigureNameProvider(Name);
 }
 
 }  // namespace trapteamrecomp
