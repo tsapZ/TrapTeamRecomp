@@ -47,8 +47,8 @@ Updated at the end of every session. Only record what a build actually did.
   (ScriptReference vtable 0x821095A8) holding "Player State - Need Toy" only at the prompt; the
   game's names are pooled and referenced by tagged pointers (address + 1). The watch finds the
   variable by a heap scan every half second and opens the menu for player 1. Checked by script:
-  the menu came up by itself 0.1 s after the prompt. Player 2's prompt and the "too many" screens
-  are still to look at.
+  the menu came up by itself 0.1 s after the prompt. Player 2's prompt: below; the "too many" screens:
+  2026-10-23.
 - **Player 2's prompt** (checked by script: player 1 plays Chop Chop, player 2 presses A): the game
   makes a second "player state macro" variable (at 0xB79B7918) with "Player State - Need Toy", so the
   watch opens the menu, but for player 1: the variable doesn't say whose it is, and both players'
@@ -197,3 +197,16 @@ launcher's achievements screen.
   on in Chapter 1, the game summoned him, the speaker sounded after 5 s (2.2 s) and again a minute
   later, the overlay showed. F4 > Portal: "Portal-Lautsprecher", its volume, "Zeigen, wer
   spricht". Input script: `trap <slot> <villain>`.
+- **Portal check on the "too many" screens** ("Es befinden sich zu viele Skylander / Magische
+  Objekte auf dem Traptanium Portal"), as in the other five games: the script variable "portal
+  state - tag state" holds "too many minions" / "too many items" there (Giants' "portal error
+  string" stays 0 in this game), found by comparing the script heap's variables in play and on
+  both screens. Checked by script in Chapter 1 with blank figure files: a second Skylander and a
+  second magic item each opened the check with the right title and figures, and it closed when the
+  figure went off.
+- **German names of this game's own magic items and adventure packs** (Schicksalshand,
+  Sparschwein, Raketen-Bock, Tiki-Tratschkopf; Mitternachts-Museum, Rätselhafter Spiegel,
+  Grusel-Express, Sonnenkratzer) from the game's toy lists in character/Init_Setup.bld and the level
+  names in permanent/global.bld; the LightCore packs keep "(LightCore)", a variant the catalog names
+  otherwise ("Platinum Treasure Chest") keeps the catalog's name. 33 names, checked in F6 >
+  Magische Objekte.

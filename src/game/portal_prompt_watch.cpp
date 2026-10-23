@@ -28,6 +28,18 @@
 // "Player State - Clear" for the Skylander's arrival (about 7 s in the logs of 2026-10-21: placed
 // at 10.6 s, "Clear" at 11.0 s, the variable gone at 18.2 s), and the variable goes away when the
 // player is back in play. So the game counts as busy while the variable has a state.
+//
+// The "too many" screens ("Es befinden sich zu viele Skylander / Magische Objekte auf dem
+// Traptanium Portal") open the portal check, as in the other games. Giants' "portal error string"
+// exists here too but stays 0 on them; the variable that says it is "portal state - tag state"
+// (a ScriptReference like the other, at 0xB6BC17FC in the runs of 2026-10-23), 0 in play and on
+// such a screen the tag state, an object named after it (+8): "too many minions" for a second
+// Skylander of one player, "too many items" for a second magic item. Found 2026-10-23 by comparing
+// the script heap's variables (input script `save`, B6000000 + 64 MB) in play, with a second
+// Skylander and with a second magic item on the emulated portal (blank figure files); "cur mode"
+// went from "world" to "portal tag error" at the same time. The script's other tag states, the
+// objects next to these: "too many minions P1" / "P2", "too many traps", "too many tags", "tag
+// error", "tag not usable", "data mismatch" (kTagErrors; only the two measured).
 
 #include "portal_prompt_watch.h"
 
@@ -59,6 +71,31 @@ constexpr uint32_t kValueOffset = 0x1C;
 constexpr uint32_t kVariableSize = kValueOffset + 4;
 constexpr std::string_view kStateVariable = "player state macro";
 constexpr std::string_view kNeedToyState = "Player State - Need Toy";
+constexpr std::string_view kTagStateVariable = "portal state - tag state";
+
+// The portal check's reasons (Swap Force's EMagicMomentReason values, which the library uses).
+constexpr uint32_t kCheckReasonOther = 0;
+constexpr uint32_t kCheckReasonTooManySkylanders = 1;
+constexpr uint32_t kCheckReasonTooManyItems = 2;
+
+struct TagError {
+  std::string_view state_prefix;
+  uint32_t reason;
+};
+// The tag states that are a "too many" or figure error screen, by their name's start.
+constexpr TagError kTagErrors[] = {
+    {"too many minions", kCheckReasonTooManySkylanders},  // measured; also "... P1", "... P2"
+    {"too many items", kCheckReasonTooManyItems},         // measured
+    {"too many traps", kCheckReasonOther},
+    {"too many tags", kCheckReasonOther},
+    {"tag error", kCheckReasonOther},
+    {"tag not usable", kCheckReasonOther},
+    {"data mismatch", kCheckReasonOther},
+};
+// The error screen must stay this long before the portal check opens, and if it was closed with
+// the error still up, it comes back after a while.
+constexpr auto kErrorDelay = std::chrono::milliseconds(400);
+constexpr auto kErrorRepeat = std::chrono::seconds(8);
 // The view of physical memory the game's heap is in (the other two alias it); 64 KB pages.
 constexpr uint32_t kScanStart = 0xA0000000;
 constexpr uint32_t kScanEnd = 0xC0000000;
@@ -107,17 +144,38 @@ std::string ObjectName(rex::memory::Memory* memory, uint32_t object) {
   return ReadName(memory, ReadU32(memory, object + kNameOffset));
 }
 
-bool IsStateVariable(rex::memory::Memory* memory, uint32_t object) {
+bool IsVariable(rex::memory::Memory* memory, uint32_t object, std::string_view name) {
   return object && ReadableBytes(memory, object) >= kVariableSize &&
-         ReadU32(memory, object) == kScriptReferenceVtable &&
-         ObjectName(memory, object) == kStateVariable;
+         ReadU32(memory, object) == kScriptReferenceVtable && ObjectName(memory, object) == name;
 }
 
-// Scans the physical heap for the variable. Takes a few tens of milliseconds.
-uint32_t FindStateVariable(rex::memory::Memory* memory) {
+bool IsStateVariable(rex::memory::Memory* memory, uint32_t object) {
+  return IsVariable(memory, object, kStateVariable);
+}
+
+// The name of what the script variable at `variable` holds, empty if nothing.
+std::string ValueName(rex::memory::Memory* memory, uint32_t variable) {
+  return ObjectName(memory, ReadU32(memory, variable + kValueOffset));
+}
+
+const TagError* FindTagError(const std::string& tag_state) {
+  for (const TagError& error : kTagErrors) {
+    if (tag_state.starts_with(error.state_prefix)) return &error;
+  }
+  return nullptr;
+}
+
+struct Variables {
+  uint32_t state = 0;  // "player state macro"
+  uint32_t tag = 0;    // "portal state - tag state"
+};
+
+// Scans the physical heap for the variables. Takes a few tens of milliseconds.
+Variables FindVariables(rex::memory::Memory* memory) {
+  Variables found;
   const uint32_t needle = rex::byte_swap(kScriptReferenceVtable);  // as it is in guest memory
   uint64_t address = kScanStart;
-  while (address < kScanEnd) {
+  while (address < kScanEnd && !(found.state && found.tag)) {
     rex::memory::BaseHeap* heap = memory->LookupHeap(uint32_t(address));
     rex::memory::HeapAllocationInfo info{};
     if (!heap || !heap->QueryRegionInfo(uint32_t(address), &info) || !info.region_size) {
@@ -134,37 +192,63 @@ uint32_t FindStateVariable(rex::memory::Memory* memory) {
         std::memcpy(&word, host + 4 * i, 4);
         if (word != needle) continue;
         const uint32_t object = uint32_t(address + 4 * i);
-        if (IsStateVariable(memory, object)) return object;
+        if (!found.state && IsStateVariable(memory, object)) {
+          found.state = object;
+        } else if (!found.tag && IsVariable(memory, object, kTagStateVariable)) {
+          found.tag = object;
+        }
       }
     }
     address = std::max(region_end, address + kScanStep);
   }
-  return 0;
+  return found;
 }
 
 void Watch(rex::memory::Memory* memory) {
-  uint32_t variable = 0;
+  Variables vars;
   std::optional<Clock::time_point> last_scan;
-  std::string last_state;
+  std::string last_state, last_tag;
   std::optional<uint32_t> waiting_for;  // player whose prompt is up
   Clock::time_point since{};
   bool opened = false;
+  std::optional<Clock::time_point> error_since, check_shown;
   while (!g_stop.load()) {
     const auto now = Clock::now();
-    if (variable && !IsStateVariable(memory, variable)) variable = 0;
-    if (!variable && (!last_scan || now - *last_scan >= kRescanInterval)) {
-      variable = FindStateVariable(memory);
+    if (vars.state && !IsStateVariable(memory, vars.state)) vars.state = 0;
+    if (vars.tag && !IsVariable(memory, vars.tag, kTagStateVariable)) vars.tag = 0;
+    if ((!vars.state || !vars.tag) && (!last_scan || now - *last_scan >= kRescanInterval)) {
+      const Variables found = FindVariables(memory);
       last_scan = now;
-      if (variable) REXLOG_INFO("Portal prompt: the player state variable is at {:08X}", variable);
+      if (!vars.state && found.state) {
+        vars.state = found.state;
+        REXLOG_INFO("Portal prompt: the player state variable is at {:08X}", vars.state);
+      }
+      if (!vars.tag && found.tag) {
+        vars.tag = found.tag;
+        REXLOG_INFO("Portal prompt: the tag state variable is at {:08X}", vars.tag);
+      }
     }
-    std::string state;
-    if (variable) {
-      const uint32_t value = ReadU32(memory, variable + kValueOffset);
-      state = ObjectName(memory, value);
-    }
+    const std::string state = vars.state ? ValueName(memory, vars.state) : std::string();
     if (state != last_state) {
       REXLOG_INFO("Portal prompt: player state \"{}\"", state);
       last_state = state;
+    }
+    const std::string tag = vars.tag ? ValueName(memory, vars.tag) : std::string();
+    if (tag != last_tag) {
+      REXLOG_INFO("Portal prompt: tag state \"{}\"", tag);
+      last_tag = tag;
+    }
+    if (const TagError* error = FindTagError(tag)) {
+      if (!error_since) error_since = now;
+      if (now - *error_since >= kErrorDelay && (!check_shown || now - *check_shown >= kErrorRepeat)) {
+        REXLOG_INFO("Portal prompt: the game shows \"{}\", opening the portal check", tag);
+        skylanders::ShowPortalCheck(error->reason);
+        check_shown = now;
+      }
+    } else if (error_since) {
+      if (check_shown) skylanders::ClosePortalCheck();
+      error_since.reset();
+      check_shown.reset();
     }
     g_busy.store(!state.empty());
     std::optional<uint32_t> player;
