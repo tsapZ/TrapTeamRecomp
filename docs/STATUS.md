@@ -210,3 +210,15 @@ launcher's achievements screen.
   names in permanent/global.bld; the LightCore packs keep "(LightCore)", a variant the catalog names
   otherwise ("Platinum Treasure Chest") keeps the catalog's name. 33 names, checked in F6 >
   Magische Objekte.
+
+## 2026-10-23: day
+
+- **Weiterspielen into the save played last** (Core of Light's tile, `--continue_game=true`): the
+  "Speicherslot wählen" screen always starts on slot 1, checked with saves in slots 1 and 2 (2
+  written last). `src/game/continue_slot.cpp` takes the slot whose `Save_Slot_<n>.xsg` was written
+  last and, before the continue's A on that screen, moves the cursor there (Right / Down) through
+  the library's new continue step. The script variable "selection cur" (the highlighted slot's
+  "item info base" object) says when the slot screen is up and when the cursor has moved; found by
+  comparing the script heap's variables with the cursor on slot 1, 2, 4 and 2. Checked by script:
+  no input, the cursor went to slot 2 and "Spiel fortsetzen" loaded that save. The script variable
+  helpers are shared now (`src/game/script_vars.h`, also used by the portal prompt watch).
