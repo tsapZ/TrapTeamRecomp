@@ -25,6 +25,10 @@ settings menu's own buttons have no "off" choice, so a controller can always get
 
 ## Portal menu
 
+A trap goes on next to the player's Skylander and doesn't lift it (one trap at a time, a new
+one replaces the old one). The old sidekicks are Minis here and go on as a player's Skylander
+(#11).
+
 Opens by itself when the game asks a player for a Skylander (see [portal.md](portal.md)), or with
 the buttons above. It lists the figures of Spyro's Adventure, Giants, Swap Force and Trap Team by game and element, with this game's own
 pictures, read at run time from the owner's disc:
