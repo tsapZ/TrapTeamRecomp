@@ -290,3 +290,11 @@ launcher's achievements screen.
   audio came for a quarter second.
 - Not checked in a capture yet (needs a beaten villain): the request itself. Checked: the trap
   group's order and colours; the same request path with SuperChargers' vehicle.
+
+## 2026-10-25: 0.2.0-beta.2
+
+- The setup's version for what came since 0.2.0-beta.1: the trap request opens the portal menu on a "Fallen" tab (#12, not yet seen in a real capture), traps by element (#13), the speaker circle goes (#14). Also in every game: the portal overview (Back + Y / F5: what is on the portal, taken off one by one without lifting the
+  Skylander) and F4 > Controller (button jobs, vibration strength per player; not yet tried with a
+  real controller), skylanders-portal f2c4940 / 6e96c16; an A press right after the menu opened by
+  itself no longer picks a figure (SwapForceRecomp #72); one bad command-line option no longer drops
+  the others (rexglue-sdk 605000d).
