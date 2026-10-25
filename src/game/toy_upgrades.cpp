@@ -64,6 +64,11 @@ using skylanders::FigureUpgrades;
 
 constexpr char kCharacterDir[] = "character";
 constexpr std::string_view kPosesPath = "/upgradeposes/";
+// This game's own Skylanders (the 53 archives from 450_Typhoon to 504_Mini_Hex, Trap Masters and
+// cores alike) keep theirs in another folder, named after the character rather than the model:
+// ".../ui_sky4/upgrades/467_enigma/467_enigma_up1.png" in 467_Void.arc (the owner, 2026-10-25:
+// Enigma's tree showed only arrows). The suffix is the same ("up1" ... "up11", "primary").
+constexpr std::string_view kSky4Path = "/ui_sky4/upgrades/";
 constexpr std::string_view kKeyPrefix = "upgrade:";
 
 constexpr uint32_t kCosts[] = {500, 700, 900, 1200, 1700, 2200, 3000, 4000, 5000};
@@ -268,7 +273,8 @@ void Load(std::filesystem::path rom, std::string pack) {
     if (auto arc = alchemy::Iga11Archive::Open(t.arc)) {
       for (size_t i = 0; i < arc->size(); ++i) {
         const std::string name = Lower(arc->name(i));
-        const size_t at = name.find(kPosesPath);
+        size_t at = name.find(kPosesPath);
+        if (at == std::string::npos) at = name.find(kSky4Path);
         if (at == std::string::npos) continue;
         size_t ext = name.find(".png", at);
         if (ext == std::string::npos) ext = name.find(".tga", at);

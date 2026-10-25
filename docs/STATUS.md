@@ -298,3 +298,29 @@ launcher's achievements screen.
   real controller), skylanders-portal f2c4940 / 6e96c16; an A press right after the menu opened by
   itself no longer picks a figure (SwapForceRecomp #72); one bad command-line option no longer drops
   the others (rexglue-sdk 605000d).
+
+## 2026-10-25: afternoon (after 0.2.0-beta.2)
+
+- **The trap request opens the requested element's traps** (#12): the script variable "trapping
+  monster definition" names the villain to catch ("009 - tutorial ally"); its number is the
+  villain's id as the traps keep it (9 Gulper, trap 211, Water). Without it after 1.2 s the menu
+  opens on the traps as a whole. Not seen in a capture yet.
+- **"Needs a break"**: the script variable "portal error string" (as in Giants) with a `304_` key
+  opens player 1's menu and marks the Skylander tired. Not measured yet; the key is logged.
+- **Enigma's upgrade pictures** (and the other 52 of this game's own characters): they sit under
+  `/ui_sky4/upgrades/<id>_<name>/` in the character archive, not under `/upgradeposes/`. Checked:
+  Enigma's tree shows its pictures.
+- **The portal overview holds the game** while it is open (rexglue-sdk adf2a90, a frame gate in
+  VdSwap: the guest waits before handing over its next frame while the menus keep drawing;
+  skylanders-portal ab11cbc). It closes when the portal menu opens and after a vehicle is taken
+  off there (the game's next request took the Skylander off with the same A, SuperChargersRecomp).
+  Its cards stand just above the portal, and the portal's band of light goes all the way round.
+- **Tired Skylanders** (skylanders-portal `PlayerSkylanderTired`): when the game says a player's
+  Skylander is out of health, the menu opens and that figure gets a red cross until it has been on
+  the portal a while again (a new level). It stays pickable, so a wrong guess can't lock a figure.
+- **A hat shows only in a game that knows it** (Enigma's SuperChargers hat showed as "Hut Nr. 269").
+- **F4 opens on "Spiel"**, which now has the game's **volume** (0-100 %, SwapForceRecomp #68) and
+  the **frame rate display** (the SDK's F3 window, Core of Light #28). **F4 > Tastatur** names each
+  key as this PC's keyboard prints it ("Ö / Leertaste", "Umschalt+Pfeil hoch") and has "Alle
+  Tasten zurücksetzen" (SwapForceRecomp #66). skylanders-portal 218defd.
+- The "who's talking" circle sits higher, above the game's health bar.

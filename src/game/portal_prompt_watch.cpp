@@ -50,6 +50,20 @@
 // AutoOpenPortalMenuForCompanion): opened with the button it lifted the Skylander, the game
 // switched to "Need Toy" and forgot the request, and the trap that went on afterwards only caught
 // the villain when the game asked again (TrapTeamRecomp #12).
+//
+// Which element's trap it wants: the script variable "trapping monster definition" holds the
+// villain to catch, an object named "<villain number> - <name>" ("009 - tutorial ally" in the
+// owner's capture of 2026-10-25, where the game asked for a water trap). The number is the
+// villain's id as the traps keep it (skylanders-portal trap_villain.h: 9 Gulper, whose trap is toy
+// 211, Water), so the menu opens on that element's traps. The variable lives at the request only
+// (at 0xBBBC63DC in that capture); without it the menu opens on the traps as a whole.
+//
+// A Skylander out of health: the game's text key for it is "304_PortalError_NeedsRemoval_Minion"
+// ("this Skylander needs a break, take it off", in global.bld's portal error keys, as in Giants).
+// Giants shows its portal texts through the script variable "portal error string" (its StringInfo,
+// +8 the key); this game has the variable too. While it holds a 304 key the portal menu opens, to
+// swap the Skylander for another (the owner, 2026-10-25: in every game). Not measured here yet:
+// the key and the tag state are logged when they change, so a test round shows what the game does.
 
 #include "portal_prompt_watch.h"
 #include "script_vars.h"
@@ -65,6 +79,9 @@
 
 #include <rex/logging.h>
 
+#include "portal/figure_catalog.h"
+#include "portal/figure_info.h"
+#include "portal/trap_villain.h"
 #include "portal_rex/portal_menu.h"
 
 namespace trapteamrecomp {
@@ -79,6 +96,11 @@ constexpr std::string_view kStateVariable = "player state macro";
 constexpr std::string_view kNeedToyState = "Player State - Need Toy";
 constexpr std::string_view kNeedTrapState = "Player State - Vault Capture";
 constexpr std::string_view kTagStateVariable = "portal state - tag state";
+constexpr std::string_view kTrappingVariable = "trapping monster definition";
+constexpr std::string_view kErrorVariable = "portal error string";
+constexpr std::string_view kNeedsBreakKey = "304_";
+// How long the trap request may wait for the villain's variable before the menu opens without it.
+constexpr auto kTrapElementWait = std::chrono::milliseconds(1200);
 
 // The portal check's reasons (Swap Force's EMagicMomentReason values, which the library uses).
 constexpr uint32_t kCheckReasonOther = 0;
@@ -124,20 +146,48 @@ const TagError* FindTagError(const std::string& tag_state) {
 }
 
 struct Variables {
-  uint32_t state = 0;  // "player state macro"
-  uint32_t tag = 0;    // "portal state - tag state"
+  uint32_t state = 0;     // "player state macro"
+  uint32_t tag = 0;       // "portal state - tag state"
+  uint32_t trapping = 0;  // "trapping monster definition"
+  uint32_t error = 0;     // "portal error string"
 };
 
 // Scans the physical heap for the variables. Takes a few tens of milliseconds.
 Variables FindVariables(rex::memory::Memory* memory) {
-  const std::vector<uint32_t> found = script::FindVariables(memory, {kStateVariable, kTagStateVariable});
-  return {found[0], found[1]};
+  const std::vector<uint32_t> found =
+      script::FindVariables(memory, {kStateVariable, kTagStateVariable, kTrappingVariable, kErrorVariable});
+  return {found[0], found[1], found[2], found[3]};
+}
+
+// The element of the trap the game asks for, from the villain to catch ("009 - tutorial ally":
+// villain 9, Gulper, a water trap), or kNone.
+skylanders::portal::Element TrapElementWanted(rex::memory::Memory* memory, uint32_t trapping) {
+  namespace portal = skylanders::portal;
+  if (!trapping) return portal::Element::kNone;
+  const std::string name = ValueName(memory, trapping);
+  int id = 0;
+  size_t digits = 0;
+  while (digits < name.size() && digits < 3 && name[digits] >= '0' && name[digits] <= '9') {
+    id = id * 10 + (name[digits] - '0');
+    ++digits;
+  }
+  if (!digits || id <= 0 || id > 255) return portal::Element::kNone;
+  const portal::TrapVillain* villain = portal::FindTrapVillain(uint8_t(id), false);
+  if (!villain) return portal::Element::kNone;
+  for (const portal::SkylanderInfo& sky : portal::AllSkylanders()) {
+    if (sky.id == villain->trap_id && sky.category == "Traps") {
+      REXLOG_INFO("Portal prompt: the trap is for \"{}\" ({}): {} trap", name, villain->name,
+                  portal::ElementName(portal::TrapElement(sky)));
+      return portal::TrapElement(sky);
+    }
+  }
+  return portal::Element::kNone;
 }
 
 void Watch(rex::memory::Memory* memory) {
   Variables vars;
   std::optional<Clock::time_point> last_scan;
-  std::string last_state, last_tag;
+  std::string last_state, last_tag, last_error;
   std::optional<uint32_t> waiting_for;  // player whose prompt is up
   Clock::time_point since{};
   bool opened = false;
@@ -148,7 +198,10 @@ void Watch(rex::memory::Memory* memory) {
     const auto now = Clock::now();
     if (vars.state && !IsStateVariable(memory, vars.state)) vars.state = 0;
     if (vars.tag && !IsVariable(memory, vars.tag, kTagStateVariable)) vars.tag = 0;
-    if ((!vars.state || !vars.tag) && (!last_scan || now - *last_scan >= kRescanInterval)) {
+    if (vars.trapping && !IsVariable(memory, vars.trapping, kTrappingVariable)) vars.trapping = 0;
+    if (vars.error && !IsVariable(memory, vars.error, kErrorVariable)) vars.error = 0;
+    if ((!vars.state || !vars.tag || !vars.error || (trap_request && !vars.trapping)) &&
+        (!last_scan || now - *last_scan >= kRescanInterval)) {
       const Variables found = FindVariables(memory);
       last_scan = now;
       if (!vars.state && found.state) {
@@ -158,6 +211,14 @@ void Watch(rex::memory::Memory* memory) {
       if (!vars.tag && found.tag) {
         vars.tag = found.tag;
         REXLOG_INFO("Portal prompt: the tag state variable is at {:08X}", vars.tag);
+      }
+      if (!vars.trapping && found.trapping) {
+        vars.trapping = found.trapping;
+        REXLOG_INFO("Portal prompt: the trapping variable is at {:08X}", vars.trapping);
+      }
+      if (!vars.error && found.error) {
+        vars.error = found.error;
+        REXLOG_INFO("Portal prompt: the portal error variable is at {:08X}", vars.error);
       }
     }
     const std::string state = vars.state ? ValueName(memory, vars.state) : std::string();
@@ -182,9 +243,15 @@ void Watch(rex::memory::Memory* memory) {
       error_since.reset();
       check_shown.reset();
     }
+    const std::string error_key = vars.error ? ValueName(memory, vars.error) : std::string();
+    if (error_key != last_error) {
+      REXLOG_INFO("Portal prompt: portal error \"{}\"", error_key);
+      if (error_key.starts_with(kNeedsBreakKey)) skylanders::PlayerSkylanderTired(0);
+      last_error = error_key;
+    }
     g_busy.store(!state.empty());
     std::optional<uint32_t> player;
-    if (state == kNeedToyState) player = 0;
+    if (state == kNeedToyState || error_key.starts_with(kNeedsBreakKey)) player = 0;
     if (player != waiting_for) {
       if (waiting_for && opened) skylanders::CloseAutoOpenedPortalMenu();
       waiting_for = player;
@@ -192,9 +259,15 @@ void Watch(rex::memory::Memory* memory) {
       opened = false;
     }
     if (waiting_for && !opened && now - since >= kOpenDelay) {
-      REXLOG_INFO("Portal prompt: the game asks for a Skylander (the menu opens for the first "
-                  "player without one)");
-      skylanders::AutoOpenPortalMenuForPlayerWithoutFigure();
+      if (error_key.starts_with(kNeedsBreakKey)) {
+        // The tired Skylander is still on the portal: player 1's menu, to swap it.
+        REXLOG_INFO("Portal prompt: a Skylander needs a break (the menu opens for player 1)");
+        skylanders::AutoOpenPortalMenu(0);
+      } else {
+        REXLOG_INFO("Portal prompt: the game asks for a Skylander (the menu opens for the first "
+                    "player without one)");
+        skylanders::AutoOpenPortalMenuForPlayerWithoutFigure();
+      }
       opened = true;
     }
     // The trap request: the menu on the traps, the Skylander stays on. The trap is shared, so the
@@ -206,10 +279,14 @@ void Watch(rex::memory::Memory* memory) {
       trap_opened = false;
       if (!trap_wanted) skylanders::CompanionRequestEnded();
     }
+    // On the requested element's traps: once the villain is known, or after a moment without it.
     if (trap_request && !trap_opened && now - trap_since >= kOpenDelay) {
-      REXLOG_INFO("Portal prompt: the game asks for a trap (the menu opens on the traps)");
-      skylanders::AutoOpenPortalMenuForCompanion(0, skylanders::portal::Element::kNone);
-      trap_opened = true;
+      const skylanders::portal::Element element = TrapElementWanted(memory, vars.trapping);
+      if (element != skylanders::portal::Element::kNone || now - trap_since >= kTrapElementWait) {
+        REXLOG_INFO("Portal prompt: the game asks for a trap (the menu opens on the traps)");
+        skylanders::AutoOpenPortalMenuForCompanion(0, element);
+        trap_opened = true;
+      }
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(30));
   }
