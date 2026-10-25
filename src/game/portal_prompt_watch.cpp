@@ -40,6 +40,16 @@
 // went from "world" to "portal tag error" at the same time. The script's other tag states, the
 // objects next to these: "too many minions P1" / "P2", "too many traps", "too many tags", "tag
 // error", "tag not usable", "data mismatch" (kTagErrors; only the two measured).
+//
+// The trap request ("Stecke eine Wasser-Falle ins Portal", to catch a beaten villain) is the same
+// player state variable with the state "Player State - Vault Capture", from the request until the
+// trap is on ("Player State - Clear" then). Found 2026-10-25 in the owner's capture with a trace of
+// every script variable about traps, villains and the mode (the villain in "trapping monster
+// definition", e.g. "009 - tutorial ally"; "cur mode" went "world to portal" -> "idle"). The menu
+// opens on the traps then without lifting the Skylander (skylanders::
+// AutoOpenPortalMenuForCompanion): opened with the button it lifted the Skylander, the game
+// switched to "Need Toy" and forgot the request, and the trap that went on afterwards only caught
+// the villain when the game asked again (TrapTeamRecomp #12).
 
 #include "portal_prompt_watch.h"
 #include "script_vars.h"
@@ -67,6 +77,7 @@ using script::ValueName;
 
 constexpr std::string_view kStateVariable = "player state macro";
 constexpr std::string_view kNeedToyState = "Player State - Need Toy";
+constexpr std::string_view kNeedTrapState = "Player State - Vault Capture";
 constexpr std::string_view kTagStateVariable = "portal state - tag state";
 
 // The portal check's reasons (Swap Force's EMagicMomentReason values, which the library uses).
@@ -130,6 +141,8 @@ void Watch(rex::memory::Memory* memory) {
   std::optional<uint32_t> waiting_for;  // player whose prompt is up
   Clock::time_point since{};
   bool opened = false;
+  bool trap_request = false, trap_opened = false;
+  Clock::time_point trap_since{};
   std::optional<Clock::time_point> error_since, check_shown;
   while (!g_stop.load()) {
     const auto now = Clock::now();
@@ -183,6 +196,20 @@ void Watch(rex::memory::Memory* memory) {
                   "player without one)");
       skylanders::AutoOpenPortalMenuForPlayerWithoutFigure();
       opened = true;
+    }
+    // The trap request: the menu on the traps, the Skylander stays on. The trap is shared, so the
+    // menu is player 1's; the element row is the player's to pick (the game's text names it).
+    const bool trap_wanted = state == kNeedTrapState;
+    if (trap_wanted != trap_request) {
+      trap_request = trap_wanted;
+      trap_since = now;
+      trap_opened = false;
+      if (!trap_wanted) skylanders::CompanionRequestEnded();
+    }
+    if (trap_request && !trap_opened && now - trap_since >= kOpenDelay) {
+      REXLOG_INFO("Portal prompt: the game asks for a trap (the menu opens on the traps)");
+      skylanders::AutoOpenPortalMenuForCompanion(0, skylanders::portal::Element::kNone);
+      trap_opened = true;
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(30));
   }

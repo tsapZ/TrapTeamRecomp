@@ -274,3 +274,19 @@ launcher's achievements screen.
   follows it again once the keys or the pad move it.
 - **A chosen 4x texture filter stays 4x** (Core of Light #21, a colleague's report and fix;
   skylanders-portal 23be5f2): 4x is the SDK's own default, so it counted as unset and became 16x.
+
+## 2026-10-25 (night): portal requests
+
+- **The trap request opens the menu** (#12): the portal script's player state is "Player State -
+  Vault Capture" from "Stecke eine ...-Falle ins Portal" until the trap is on; found in the owner's
+  capture with a temporary trace of every script variable about traps, villains and the mode. The
+  menu opens on a "Fallen" tab of its own (by element) without lifting the Skylander and puts the
+  trap on at once (skylanders-portal AutoOpenPortalMenuForCompanion). Opened with the button it had
+  lifted the Skylander: the game switched to "Need Toy", forgot the request, and the trap only
+  caught the villain when the game asked again.
+- **Traps sorted by element** in the Trap Team tab's trap group, in their element's colour, the
+  group named "Fallen" (#13).
+- **The "who's talking" circle goes away with the trap** (#14): the speaker counts as quiet once no
+  audio came for a quarter second.
+- Not checked in a capture yet (needs a beaten villain): the request itself. Checked: the trap
+  group's order and colours; the same request path with SuperChargers' vehicle.
