@@ -329,3 +329,11 @@ launcher's achievements screen.
   the same wording in every game where the setting is the same. The Back + Y row is called
   "Portal-Übersicht" now (it opens the portal overview since skylanders-portal f2c4940).
   skylanders-portal 2a97055.
+- **Hints in the pad's own buttons** (Core of Light #29, skylanders-portal 39ab210): after a press on a
+  PlayStation pad the menus' hints show its symbols and L1 / R1 / Options, on a Nintendo pad its
+  letters in their places and L / R / ZL / ZR / +; Xbox-like pads stay as they were.
+- **The HUD's dark band** (the owner, 2026-10-25): checked at every resolution scale, native 3D on
+  and off, ROV and RTV, windowed and fullscreen: the HUD is drawn straight into the back buffer at
+  full size, sharp; the band is the game's own backing panel, whose texture fades only left to
+  right, so its top and bottom edges are hard as on the console. A 1-pixel line at its right end
+  comes from the HD pack builder (an edge padded by colour only, 37 such edges in this game's pack).
