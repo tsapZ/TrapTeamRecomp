@@ -337,3 +337,7 @@ launcher's achievements screen.
   full size, sharp; the band is the game's own backing panel, whose texture fades only left to
   right, so its top and bottom edges are hard as on the console. A 1-pixel line at its right end
   comes from the HD pack builder (an edge padded by colour only, 37 such edges in this game's pack).
+
+## 2026-10-25: 0.2.0-beta.3
+
+- The setup's version for what came since the last one: the trap request on the wanted element (#12), the upgrade pictures of this game's own characters (Enigma) and "needs a break". Also in every game: the portal overview holds the game while open, a Skylander out of health gets the menu and a red cross, hats only where the game knows them, F4 opens on "Spiel" with volume and frame rate rows, key names as the keyboard prints them and a reset row, descriptions in short lines, hints in a PlayStation or Nintendo pad's own buttons, and figure changes with an HD pack without the stutter (skylanders-portal 39ab210, rexglue-sdk ce9dbb6).
