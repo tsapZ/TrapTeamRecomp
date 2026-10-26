@@ -341,3 +341,16 @@ launcher's achievements screen.
 ## 2026-10-25: 0.2.0-beta.3
 
 - The setup's version for what came since the last one: the trap request on the wanted element (#12), the upgrade pictures of this game's own characters (Enigma) and "needs a break". Also in every game: the portal overview holds the game while open, a Skylander out of health gets the menu and a red cross, hats only where the game knows them, F4 opens on "Spiel" with volume and frame rate rows, key names as the keyboard prints them and a reset row, descriptions in short lines, hints in a PlayStation or Nintendo pad's own buttons, and figure changes with an HD pack without the stutter (skylanders-portal 39ab210, rexglue-sdk ce9dbb6).
+
+## 2026-10-26
+
+- **Nightmare from the start** (`nightmare_from_start`, F4 > Game, off; SwapForceRecomp #74, as in
+  Swap Force and Imaginators): the lock is in a script, the difficulty menu's macro "Menu - 3d -
+  Diff - Create" in Title.bld (system flag 3 == 1 sets "allow nightmare"); a scan of all 86 level
+  archives found that check only there. A mid-asm hook after the compare in OpCheckValue's execute
+  (0x82285CE0, src/hooks/nightmare_hook.cpp) makes exactly that check true. Name pointers in the
+  script objects carry a tag bit at runtime (an odd address; the strings start at even ones).
+  Checked on empty scratch data: on, the menu has four entries and "Albtraum" can be chosen; off,
+  three. The save isn't touched.
+- rexglue-sdk 07f1106: no null read in the presenter's vblank thread when the window moves to
+  another monitor at start.

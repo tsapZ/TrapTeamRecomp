@@ -71,7 +71,8 @@ one to take off, Continue takes them off. See [portal.md](portal.md#portal-check
   this game already presents every frame, so the limit alone sets it), VSync, render path,
   graphics card, graphics interface (D3D12 or Vulkan).
 - **Game:** language (automatic, English, German, French, Spanish, Italian), skip the logo
-  movies, skip the opening movie, achievements, quit and restart the game.
+  movies, skip the opening movie, Nightmare from the start (`nightmare_from_start`, off; the save
+  isn't changed), achievements, quit and restart the game.
 - **Portal:** virtual / both / USB / none (`portal_mode`), the portal menu opening by itself, only my
   figures, later games' figures, the player menu, the portal speaker (`portal_audio`) and its
   volume (`portal_speaker_volume`), showing who talks from a trap (`portal_speaker_overlay`).

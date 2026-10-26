@@ -22,6 +22,16 @@ registers = ["r1"]
 # handle right after it; that close is its only caller. With ultrawide active,
 # src/hooks/ultrawide_hook.cpp turns the presenter's side bars it put up for the movie (at
 # BinkOpen, see BinkHeaderLoaded) off again; it reads and changes no guest state.
+# 0x82285CE0 follows bl 0x822878C0 in sub_82285C88, a script's OpCheckValue: r3 is the compare's
+# result (below 1 skips the op's next +0x1A ops), r31 the op. Found from the difficulty menu's
+# script ("Menu - 3d - Diff - Create": system flag 3 == 1 sets "allow nightmare") to the ops' execute
+# functions. src/hooks/nightmare_hook.cpp sets r3 to 1 for that one check when
+# nightmare_from_start is on (off by default); r3 is read only by the compare right after.
+[[midasm_hook]]
+address = 0x82285CE0
+name = "NightmareCheckHook"
+registers = ["r3", "r31"]
+
 [[midasm_hook]]
 address = 0x821A5FE8
 name = "BinkCloseHook"
