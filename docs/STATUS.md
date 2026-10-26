@@ -358,3 +358,8 @@ launcher's achievements screen.
 ## 2026-10-26: 0.2.0-beta.4
 
 - The setup's version for what came since the last one: "Nightmare from the start" (F4 > Game, off by default, the save isn't changed). Also in every game: no crash at start when the window moves to another monitor (rexglue-sdk 07f1106), and the portal menu no longer lifts a Skylander the game is still loading from the portal (skylanders-portal d4ce7b6).
+
+## 2026-10-26: night
+
+- **The portal speaker plays each line to its end** (#15). The game ends a voice once its XMA input is used up and its output read. Our decoder marked the input used up while it still held the last two frames (1024 samples, 128 ms at 8 kHz), so every trapped villain's line lost its end. rexglue-sdk 90f3bad keeps the last input buffer valid until all of its output is out. Measured on Kaos' portal lines: before, the portal stopped 1384 samples before the end of the decoded line; now it plays it to the end (r 0.998 against the decoded line), and the decoded line still matches vgmstream (r 1.0000). Long streams flush the decoder's carry as often as before (about once per 47 000 samples).
+- skylanders-portal 8cbf30d: the picture cache also leaves the game's element symbols for the launcher's figure library (SkylandersCoreOfLight #38). Checked: all ten.
