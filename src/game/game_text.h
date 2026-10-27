@@ -9,12 +9,15 @@
 #include <utility>
 #include <vector>
 
-namespace trapteamrecomp {
-
-namespace alchemy {
+namespace skylanders::alchemy {
 class Iga11Archive;
 class Igz8File;
-}  // namespace alchemy
+}  // namespace skylanders::alchemy
+
+namespace trapteamrecomp {
+
+// The games' shared Alchemy readers (skylanders-portal src/alchemy).
+namespace alchemy = skylanders::alchemy;
 
 // The language pack the menu reads ("GERMAN.pak" when the game runs in German, else
 // "ENGLISH.pak", the two this disc has).

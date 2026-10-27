@@ -63,12 +63,15 @@
 
 #include <rex/logging.h>
 
-#include "game/alchemy/iga11_archive.h"
-#include "game/alchemy/igz8_file.h"
-#include "game/xenos_dxt.h"
+#include "alchemy/iga11_archive.h"
+#include "alchemy/igz8_file.h"
+#include "alchemy/xenos_dxt.h"
 #include "portal_rex/portal_menu.h"
 
 namespace trapteamrecomp {
+
+// The games' shared Alchemy readers (skylanders-portal src/alchemy).
+namespace alchemy = skylanders::alchemy;
 namespace {
 
 using Clock = std::chrono::steady_clock;
@@ -189,7 +192,7 @@ std::string PortraitName(const std::string& path) {
 }
 
 // The picture centred in a transparent square, for the menu's square tiles.
-std::shared_ptr<const FigureImage> ToSquareImage(RgbaImage&& image) {
+std::shared_ptr<const FigureImage> ToSquareImage(alchemy::RgbaImage&& image) {
   auto out = std::make_shared<FigureImage>();
   const int side = std::max(image.width, image.height);
   out->width = side;
@@ -224,7 +227,7 @@ int ReadScenePictures(const std::filesystem::path& archive_path, NameOf name_of,
     const std::string name = name_of(image.name);
     if (name.empty()) continue;
     if (auto rgba = igz->Decode(image)) {
-      FlipVertically(*rgba);  // stored upside down
+      alchemy::FlipVertically(*rgba);  // stored upside down
       use(name, ToSquareImage(std::move(*rgba)));
       ++count;
     }
@@ -289,7 +292,7 @@ int ReadCards(const std::filesystem::path& archive_path) {
     if (images.empty()) continue;
     auto rgba = igz->Decode(images[0]);
     if (!rgba) continue;
-    FlipVertically(*rgba);  // stored upside down
+    alchemy::FlipVertically(*rgba);  // stored upside down
     auto image = ToSquareImage(std::move(*rgba));
     std::lock_guard<std::mutex> lock(g_mutex);
     g_cards[id].push_back(Card{variant, std::move(image)});
@@ -322,7 +325,7 @@ int ReadVillains(const std::filesystem::path& archive_path) {
     if (images.empty()) continue;
     auto rgba = igz->Decode(images[0]);
     if (!rgba) continue;
-    FlipVertically(*rgba);  // stored upside down like the cards
+    alchemy::FlipVertically(*rgba);  // stored upside down like the cards
     auto image = ToSquareImage(std::move(*rgba));
     std::lock_guard<std::mutex> lock(g_mutex);
     g_art["villain:" + std::to_string(number - 1000)] = std::move(image);

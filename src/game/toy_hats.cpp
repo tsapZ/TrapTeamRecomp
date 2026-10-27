@@ -33,13 +33,16 @@
 
 #include <rex/logging.h>
 
-#include "game/alchemy/iga11_archive.h"
-#include "game/alchemy/igz8_file.h"
+#include "alchemy/iga11_archive.h"
+#include "alchemy/igz8_file.h"
 #include "game/game_text.h"
-#include "game/xenos_dxt.h"
+#include "alchemy/xenos_dxt.h"
 #include "portal_rex/menu_draw.h"
 
 namespace trapteamrecomp {
+
+// The games' shared Alchemy readers (skylanders-portal src/alchemy).
+namespace alchemy = skylanders::alchemy;
 namespace {
 
 using alchemy::Iga11Archive;
@@ -99,8 +102,8 @@ std::vector<HatStat> ParseBonuses(const std::string& text) {
   return out;
 }
 
-std::shared_ptr<FigureImage> Upright(RgbaImage rgba) {
-  FlipVertically(rgba);  // stored upside down
+std::shared_ptr<FigureImage> Upright(alchemy::RgbaImage rgba) {
+  alchemy::FlipVertically(rgba);  // stored upside down
   auto out = std::make_shared<FigureImage>();
   out->width = rgba.width;
   out->height = rgba.height;

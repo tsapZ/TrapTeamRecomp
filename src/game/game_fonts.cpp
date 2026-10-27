@@ -39,10 +39,13 @@
 
 #include <rex/logging.h>
 
-#include "game/alchemy/iga11_archive.h"
-#include "game/alchemy/igz8_file.h"
+#include "alchemy/iga11_archive.h"
+#include "alchemy/igz8_file.h"
 
 namespace trapteamrecomp {
+
+// The games' shared Alchemy readers (skylanders-portal src/alchemy).
+namespace alchemy = skylanders::alchemy;
 namespace {
 
 using skylanders::GameFont;
