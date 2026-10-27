@@ -388,3 +388,7 @@ launcher's achievements screen.
 ## 2026-10-27: 0.2.0-beta.7
 
 - The setup's version for what came since the last one: the portal menu opens on the villain's element at the villain vault (#12).
+
+## 2026-10-27: shared libraries
+
+- SDK 7be1eb2: two upstream fixes (kernel objects freed again, saved-game results checked properly) and resolved memory read back on request.
