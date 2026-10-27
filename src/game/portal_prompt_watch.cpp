@@ -159,18 +159,21 @@ Variables FindVariables(rex::memory::Memory* memory) {
   return {found[0], found[1], found[2], found[3]};
 }
 
-// The element of the trap the game asks for, from the villain to catch ("009 - tutorial ally":
-// villain 9, Gulper, a water trap), or kNone.
+// The element of the trap the game asks for, from the villain to catch, or kNone. The tutorial's
+// is "009 - tutorial ally" (villain 9, Gulper, a water trap); the villain vault's are 1000 plus the
+// villain ("1020 - sheep": 20, Sheep Creep, a life trap; measured 2026-10-27, the owner's route),
+// so the thousands go.
 skylanders::portal::Element TrapElementWanted(rex::memory::Memory* memory, uint32_t trapping) {
   namespace portal = skylanders::portal;
   if (!trapping) return portal::Element::kNone;
   const std::string name = ValueName(memory, trapping);
   int id = 0;
   size_t digits = 0;
-  while (digits < name.size() && digits < 3 && name[digits] >= '0' && name[digits] <= '9') {
+  while (digits < name.size() && digits < 4 && name[digits] >= '0' && name[digits] <= '9') {
     id = id * 10 + (name[digits] - '0');
     ++digits;
   }
+  id %= 1000;
   if (!digits || id <= 0 || id > 255) return portal::Element::kNone;
   const portal::TrapVillain* villain = portal::FindTrapVillain(uint8_t(id), false);
   if (!villain) return portal::Element::kNone;
@@ -193,6 +196,7 @@ void Watch(rex::memory::Memory* memory) {
   bool opened = false;
   bool trap_request = false, trap_opened = false;
   Clock::time_point trap_since{};
+  std::string last_trapping;
   std::optional<Clock::time_point> error_since, check_shown;
   while (!g_stop.load()) {
     const auto now = Clock::now();
@@ -225,6 +229,12 @@ void Watch(rex::memory::Memory* memory) {
     if (state != last_state) {
       REXLOG_INFO("Portal prompt: player state \"{}\"", state);
       last_state = state;
+    }
+    // The villain to catch, logged when it changes (which villain names the traps' elements, #12).
+    const std::string trapping = vars.trapping ? ValueName(memory, vars.trapping) : std::string();
+    if (trapping != last_trapping) {
+      REXLOG_INFO("Portal prompt: trapping monster definition \"{}\"", trapping);
+      last_trapping = trapping;
     }
     const std::string tag = vars.tag ? ValueName(memory, vars.tag) : std::string();
     if (tag != last_tag) {
@@ -283,6 +293,9 @@ void Watch(rex::memory::Memory* memory) {
     if (trap_request && !trap_opened && now - trap_since >= kOpenDelay) {
       const skylanders::portal::Element element = TrapElementWanted(memory, vars.trapping);
       if (element != skylanders::portal::Element::kNone || now - trap_since >= kTrapElementWait) {
+        if (element == skylanders::portal::Element::kNone) {
+          REXLOG_INFO("Portal prompt: no element from the trapping variable at {:08X} (\"{}\")", vars.trapping, trapping);
+        }
         REXLOG_INFO("Portal prompt: the game asks for a trap (the menu opens on the traps)");
         skylanders::AutoOpenPortalMenuForCompanion(0, element);
         trap_opened = true;
