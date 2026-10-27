@@ -384,3 +384,7 @@ launcher's achievements screen.
 ## 2026-10-27: the villain vault's trap element
 
 - **The portal menu opens on the right element at the villain vault** (#12): the vault's `trapping monster definition` is 1000 plus the villain (`1020 - sheep` for Sheep Creep, 20; the tutorial's `009 - tutorial ally` has none), so the three-digit reading found nothing and the menu opened on all traps. Now four digits, the thousands dropped. Checked on the owner's route (a copied save, the Academy, straight to the vault, RT, Sheep Creep): `the trap is for "1020 - sheep" (Sheep Creep): Life trap`, the menu on the Life traps. The value is logged when it changes.
+
+## 2026-10-27: 0.2.0-beta.7
+
+- The setup's version for what came since the last one: the portal menu opens on the villain's element at the villain vault (#12).
