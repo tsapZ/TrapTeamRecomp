@@ -99,6 +99,7 @@ constexpr std::string_view kTagStateVariable = "portal state - tag state";
 constexpr std::string_view kTrappingVariable = "trapping monster definition";
 constexpr std::string_view kErrorVariable = "portal error string";
 constexpr std::string_view kNeedsBreakKey = "304_";
+constexpr std::string_view kWantedBackKey = "301_";
 // How long the trap request may wait for the villain's variable before the menu opens without it.
 constexpr auto kTrapElementWait = std::chrono::milliseconds(1200);
 
@@ -257,6 +258,10 @@ void Watch(rex::memory::Memory* memory) {
     if (error_key != last_error) {
       REXLOG_INFO("Portal prompt: portal error \"{}\"", error_key);
       if (error_key.starts_with(kNeedsBreakKey)) skylanders::PlayerSkylanderTired(0);
+      // "Put the Skylander back on the portal" (301_PortalError_ToyMissing, measured in Giants: a
+      // figure taken off in a shop or a talk is wanted back and no other is taken): the menu says
+      // which one and puts it back. Not measured here yet; player 1's, as above.
+      if (error_key.starts_with(kWantedBackKey)) skylanders::PlayerSkylanderWantedBack(0);
       last_error = error_key;
     }
     g_busy.store(!state.empty());
