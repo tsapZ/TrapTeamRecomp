@@ -29,6 +29,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <unordered_map>
 
 #include <rex/cvar.h>
 #include <rex/logging.h>
@@ -110,7 +111,28 @@ bool IsNightmareCheck(uint8_t* base, uint32_t op) {
 void NightmareCheckHook(PPCRegister& r3, PPCRegister& r31) {
   if (!REXCVAR_GET(nightmare_from_start) || r3.s32 >= 1) return;
   uint8_t* base = rex::system::kernel_state()->memory()->virtual_membase();
-  if (!IsNightmareCheck(base, r31.u32)) return;
+  // Every check that comes out false passes here, many a frame, and the walk to the names asks
+  // the memory's protection a dozen times (system calls): with the option on, the game slowed down
+  // and its sound stuttered (TrapTeamRecomp #16). So each op is looked at once: its answer is
+  // kept by its address, with its left and right side's pointers to tell a new script's op at the
+  // same address (another level) from it.
+  struct Seen {
+    uint64_t sides;
+    bool nightmare;
+  };
+  thread_local std::unordered_map<uint32_t, Seen> seen;
+  const uint32_t op = r31.u32;
+  const uint64_t sides = (uint64_t(rex::memory::load_and_swap<uint32_t>(base + op + 0x1C)) << 32) |
+                         rex::memory::load_and_swap<uint32_t>(base + op + 0x24);
+  bool nightmare;
+  if (auto it = seen.find(op); it != seen.end() && it->second.sides == sides) {
+    nightmare = it->second.nightmare;
+  } else {
+    if (seen.size() > 65536) seen.clear();
+    nightmare = IsNightmareCheck(base, op);
+    seen[op] = {sides, nightmare};
+  }
+  if (!nightmare) return;
   static bool logged = false;
   if (!logged) {
     logged = true;

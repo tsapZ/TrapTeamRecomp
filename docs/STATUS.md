@@ -440,3 +440,7 @@ launcher's achievements screen.
 ## 2026-10-30: shared libraries
 
 - portable data next to Core of Light (#47); the portal menu says which Skylander the game wants back
+
+## 2026-10-30: Nightmare from the start, no slowdown (#16)
+
+- With "Nightmare from the start" on, the game ran at about 5 FPS and its sound stuttered: the hook looked at every script check that came out false again, a dozen memory queries each. Now each check is looked at once (kept by its address and its two sides); 60 FPS with the option on and off, the difficulty menu still has Nightmare.
