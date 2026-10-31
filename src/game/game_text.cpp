@@ -61,6 +61,8 @@ constexpr std::string_view kLevelField = "level=";
 constexpr char kGlobalArchive[] = "permanent/global.bld";
 constexpr std::string_view kLevelPrefix = "Level_";       // "Level_327_Kaos_Exp(1)"
 constexpr std::string_view kLevelNameSuffix = "(1)";
+constexpr std::string_view kHubPrefix = "Level_Hub";               // "Level_Hub_2014_01"
+constexpr std::string_view kHubNameKey = "999_Level_Village(1)";  // "Skylanders Academy"
 constexpr uint32_t kKeyField = 0x08;    // StringInfo
 constexpr uint32_t kTextsField = 0x18;  // LanguagePackInfo
 constexpr uint16_t kAlternateDeco = 0x400;
@@ -159,17 +161,21 @@ void Load(std::filesystem::path rom, std::string pack) {
   }
   // The levels' names by number ("327"), for the adventure packs of Location_List.
   std::unordered_map<std::string, std::string> level_names;
+  std::string hub;
   if (auto global = alchemy::Iga11Archive::Open(rom / kGlobalArchive)) {
     for (auto& [key, text] : ReadSceneTexts(*global, pack)) {
+      if (key == kHubNameKey) hub = text;
       if (!key.starts_with(kLevelPrefix) || !key.ends_with(kLevelNameSuffix)) continue;
       const size_t number = kLevelPrefix.size(), end = key.find('_', number);
       if (end != std::string::npos) level_names.emplace(key.substr(number, end - number), std::move(text));
     }
   }
   // And for the Discord status: the level as where_hook.cpp names it, its file ("Level_301_The_Machine"
-  // -> "301"; the challenges, arenas, the hub's "Level_Hub_2014_01" and the title have no number).
+  // -> "301"), the hub's ("Level_Hub_2014_01") by the Academy's own key ("999_Level_Village(1)",
+  // "Skylanders Academy" / "Skylander-Akademie"); the challenges, arenas and the title have none.
   auto by_level = std::make_shared<const std::unordered_map<std::string, std::string>>(level_names);
-  skylanders::SetDiscordLevelNames([by_level](const std::string& level) {
+  skylanders::SetDiscordLevelNames([by_level, hub](const std::string& level) {
+    if (level.starts_with(kHubPrefix)) return hub;
     if (!level.starts_with(kLevelPrefix)) return std::string();
     const size_t number = kLevelPrefix.size(), end = level.find('_', number);
     const auto it = by_level->find(level.substr(number, end == std::string::npos ? end : end - number));
