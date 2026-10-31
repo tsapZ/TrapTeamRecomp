@@ -1,4 +1,4 @@
-// The game's texts for the portal menu.
+// The game's texts for the portal menu, and the levels' names for the Discord status.
 //
 // Text in this game is stored as in Giants (GiantsRecomp src/game/game_text.cpp), in IGA 11 /
 // IGZ 8 here: a scene (an archive's level.bld) has a StringInfo object for every text it uses,
@@ -27,6 +27,7 @@
 #include <cctype>
 #include <charconv>
 #include <iterator>
+#include <memory>
 #include <mutex>
 #include <string_view>
 #include <thread>
@@ -37,6 +38,7 @@
 #include "alchemy/iga11_archive.h"
 #include "alchemy/igz8_file.h"
 #include "portal/figure_catalog.h"
+#include "portal_rex/discord_presence.h"
 #include "portal_rex/menu_draw.h"
 #include "portal_rex/portal_menu.h"
 
@@ -164,6 +166,16 @@ void Load(std::filesystem::path rom, std::string pack) {
       if (end != std::string::npos) level_names.emplace(key.substr(number, end - number), std::move(text));
     }
   }
+  // And for the Discord status: the level as where_hook.cpp names it, its file ("Level_301_The_Machine"
+  // -> "301"; the challenges, arenas, the hub's "Level_Hub_2014_01" and the title have no number).
+  auto by_level = std::make_shared<const std::unordered_map<std::string, std::string>>(level_names);
+  skylanders::SetDiscordLevelNames([by_level](const std::string& level) {
+    if (!level.starts_with(kLevelPrefix)) return std::string();
+    const size_t number = kLevelPrefix.size(), end = level.find('_', number);
+    const auto it = by_level->find(level.substr(number, end == std::string::npos ? end : end - number));
+    return it == by_level->end() ? std::string() : it->second;
+  });
+  REXLOG_INFO("Game text: {} level names", level_names.size());
   int listed = 0;
   if (auto setup = alchemy::Iga11Archive::Open(rom / kToyListArchive)) {
     for (const auto& [key, text] : ReadSceneTexts(*setup, pack)) {
