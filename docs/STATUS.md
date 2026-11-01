@@ -510,3 +510,7 @@ launcher's achievements screen.
   Tested in the Academy with a test build that forced the unlimited mode off: without the option
   the time fell every frame (the bar at a third after 46 s), with it the bar stayed full for a
   minute of walking.
+
+## 2026-11-01: 0.4.0-beta.3
+
+- The setup's version for what came since the last one: A bit faster renderer (unchanged shader constants skipped, only changed textures reloaded); Trap Team also gets the villain time cheat (#18)
