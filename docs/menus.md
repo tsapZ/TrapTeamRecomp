@@ -83,7 +83,7 @@ one to take off, Continue takes them off. See [portal.md](portal.md#portal-check
   how strongly each player's controller vibrates (`pad_rumble_p1` / `_p2`, 10 % steps, the
   controller buzzes at each change; SwapForceRecomp #71, #73).
 - **Extras:** Nightmare from the start (`nightmare_from_start`, off), villain time only drops on hits
-  (`villain_time_hits_only`, off, #18; a cheat: achievements don't unlock while it's on).
+  (`cheat_villain_time_hits_only`, off, #18; a cheat: achievements don't unlock while it's on).
 - **Advanced:** opens the SDK's list of every setting (F10, keyboard and mouse).
 
 LB / RB or LT / RT switch the page, up / down pick a setting, left / right (or A) change it, B or

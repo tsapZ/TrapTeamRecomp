@@ -495,15 +495,18 @@ launcher's achievements screen.
 
 ## 2026-11-01: villain time only on hits (#18)
 
-- **Villain time only drops on hits** (`villain_time_hits_only`, F4 > Extras, off; a cheat, so
+- **Villain time only drops on hits** (`cheat_villain_time_hits_only`, F4 > Extras, off; a cheat, so
   achievements are held while it's on). Villain time is a script, not code: "Villain Timer
   Internal - Update" in the global Sky_Allies.ai, read from a heap snapshot of the Academy by
   decoding its ops (types, names, skip counts). While a villain plays it subtracts the frame time
   from `control.timer value`; hits subtract `damage / 100 * timer - reduction per 100 hp of damage`
-  in "Villain - On Hurt Timer Reduction"; the Academy and the challenges skip the whole update
-  (`^unlimited timer`, `Is Challenge Level`). A mid-asm hook on the scripts' float subtraction
+  in "Villain - On Hurt Timer Reduction"; the update is skipped where the levels turn on
+  "Villain - Timer - Set Timer Unlimited Mode" (`timer update disabled`: the Academy, Level_302's
+  ride down the dune, where the bar still falls from hits) and in challenges. A mid-asm hook on the scripts' float subtraction
   (0x82288160 in sub_822880B0, src/hooks/villain_time_hook.cpp) subtracts 0 for exactly the
   expression "control.timer value - time elapsed this frame" (the only one of the 536 loaded
   subtractions with that right side), so hits, the tag-out at 0, the recharge and the bar work as
   before. The script readers the Nightmare hook had are shared in src/hooks/script_objects.h.
-  Not tested in a game yet.
+  Tested in the Academy with a test build that forced the unlimited mode off: without the option
+  the time fell every frame (the bar at a third after 46 s), with it the bar stayed full for a
+  minute of walking.

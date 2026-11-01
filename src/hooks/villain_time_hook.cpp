@@ -2,9 +2,10 @@
 // until it takes hits, its time bar working like a health bar.
 //
 // Trap Team counts villain time in a script, not in code: the global include Sky_Allies.ai has the
-// macro "Villain Timer Internal - Update", run every frame, which (read 2026-11-01 from a heap
-// snapshot of the Academy, the ops decoded by their types) does
+// macro "Villain Timer Internal - Update", run every frame, which (read 2026-11-01 from heap
+// snapshots, the ops decoded by their types) does
 //
+//   if control.timer update disabled or the level's ^unlimited timer: nothing
 //   if control.timer depleting != 0                      (the villain is in play)
 //     control.timer change this frame = 0 - time elapsed this frame
 //     control.timer value = control.timer value - time elapsed this frame    <- this subtraction
@@ -12,18 +13,25 @@
 //   else: recharge by "timer - recharge time/sec" up to "timer - base amount"
 //   control.timer pct = control.timer value / timer - base amount           (the HUD's bar)
 //
-// Hits take time off in another macro, "Villain - On Hurt Timer Reduction": control's timer value
-// minus incoming damage / 100 * the villain's "timer - reduction per 100 hp of damage". It goes
-// through the same subtraction but with a temporary on the right, so it stays as it is, and so do
-// the tag-out at 0, the warning music, the recharge and the bar.
+// "timer update disabled" follows the macro "Villain - Timer - Set Timer Unlimited Mode", which the
+// levels turn on where villain time shouldn't run (the Academy, Level_302's ride down the dune).
+// Hits take time off in another macro, "Villain - On Hurt Timer Reduction", in either mode: control's
+// timer value minus incoming damage / 100 * the villain's "timer - reduction per 100 hp of damage".
+// It goes through the same subtraction but with a temporary on the right, so it stays as it is, and
+// so do the tag-out at 0, the warning music, the recharge and the bar.
 //
 // The subtraction is sub_822880B0 (the scripts' "-": evaluates the expression's left value, +8, and
 // right value, +0x10, and stores left - right). 0x82288160 is its fsubs f12,f0,f13 for two floats:
 // f0 the left, f13 the right, r30 the expression (config/default.toml). With
-// villain_time_hits_only on, the hook makes f13 zero for exactly the expression "control.timer
+// cheat_villain_time_hits_only on, the hook makes f13 zero for exactly the expression "control.timer
 // value - time elapsed this frame", told by its variables' names: of the 536 subtractions loaded in
 // the Academy, only that one has "time elapsed this frame" on its right. Nothing is written to the
 // game's memory; turned off again, the time runs from where it is.
+//
+// Tested 2026-11-01 in the Academy with a test build that forced the unlimited mode off: without the
+// option the time went down every frame (45.00, 44.95, 44.90 ...; the bar at a third after 46 s),
+// with it the bar stayed full for a minute and the time was only written once, when the villain came
+// out.
 
 #include <cstdint>
 #include <unordered_map>
@@ -36,7 +44,7 @@
 
 #include "script_objects.h"
 
-REXCVAR_DEFINE_BOOL(villain_time_hits_only, false, "Game",
+REXCVAR_DEFINE_BOOL(cheat_villain_time_hits_only, false, "Extras",
                     "A villain played from a trap loses time only when it takes hits, not by itself "
                     "(the game's per-second drain is skipped)");
 
@@ -58,7 +66,7 @@ bool IsTimeDrain(uint8_t* base, uint32_t rhs) {
 }  // namespace
 
 void VillainTimeDrainHook(PPCRegister& r30, PPCRegister& f13) {
-  if (!REXCVAR_GET(villain_time_hits_only)) return;
+  if (!REXCVAR_GET(cheat_villain_time_hits_only)) return;
   uint8_t* base = rex::system::kernel_state()->memory()->virtual_membase();
   // Every float subtraction of every script passes here, and the names cost a dozen memory
   // protection queries (system calls; see nightmare_hook.cpp, TrapTeamRecomp #16), so each
@@ -84,7 +92,7 @@ void VillainTimeDrainHook(PPCRegister& r30, PPCRegister& f13) {
   static bool logged = false;
   if (!logged) {
     logged = true;
-    REXLOG_INFO("Villain time: only hits take it off (villain_time_hits_only)");
+    REXLOG_INFO("Villain time: only hits take it off (cheat_villain_time_hits_only)");
   }
   f13.f64 = 0.0;
 }

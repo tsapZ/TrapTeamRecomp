@@ -48,8 +48,10 @@ registers = ["r3", "r31"]
 # Sky_Allies.ai, decoded from a heap snapshot: "control.timer value = control.timer value - time
 # elapsed this frame" while the villain plays) to the function its expression points to.
 # src/hooks/villain_time_hook.cpp sets f13 to 0 for that one expression when
-# villain_time_hits_only is on (off by default), so the time drops only on hits (another macro);
-# f13 isn't read after the fsubs.
+# cheat_villain_time_hits_only is on (off by default), so the time drops only on hits (another macro);
+# f13 isn't read after the fsubs. Both sides of that expression are floats (checked in a test run:
+# the drain comes through here); the function's other two subtractions (a float minus an int, two
+# ints) are for other expressions.
 [[midasm_hook]]
 address = 0x82288160
 name = "VillainTimeDrainHook"
