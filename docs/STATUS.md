@@ -492,3 +492,18 @@ launcher's achievements screen.
 ## 2026-11-01: shared libraries
 
 - SDK: outdated texture bindings reload only when used, unchanged register writes skipped
+
+## 2026-11-01: villain time only on hits (#18)
+
+- **Villain time only drops on hits** (`villain_time_hits_only`, F4 > Extras, off; a cheat, so
+  achievements are held while it's on). Villain time is a script, not code: "Villain Timer
+  Internal - Update" in the global Sky_Allies.ai, read from a heap snapshot of the Academy by
+  decoding its ops (types, names, skip counts). While a villain plays it subtracts the frame time
+  from `control.timer value`; hits subtract `damage / 100 * timer - reduction per 100 hp of damage`
+  in "Villain - On Hurt Timer Reduction"; the Academy and the challenges skip the whole update
+  (`^unlimited timer`, `Is Challenge Level`). A mid-asm hook on the scripts' float subtraction
+  (0x82288160 in sub_822880B0, src/hooks/villain_time_hook.cpp) subtracts 0 for exactly the
+  expression "control.timer value - time elapsed this frame" (the only one of the 536 loaded
+  subtractions with that right side), so hits, the tag-out at 0, the recharge and the bar work as
+  before. The script readers the Nightmare hook had are shared in src/hooks/script_objects.h.
+  Not tested in a game yet.

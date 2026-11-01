@@ -71,8 +71,7 @@ one to take off, Continue takes them off. See [portal.md](portal.md#portal-check
   this game already presents every frame, so the limit alone sets it), VSync, render path,
   graphics card, graphics interface (D3D12 or Vulkan).
 - **Game:** language (automatic, English, German, French, Spanish, Italian), skip the logo
-  movies, skip the opening movie, Nightmare from the start (`nightmare_from_start`, off; the save
-  isn't changed), achievements, quit and restart the game.
+  movies, skip the opening movie, achievements, quit and restart the game.
 - **Portal:** virtual / both / USB / none (`portal_mode`), the portal menu opening by itself, only my
   figures, later games' figures, the player menu, the portal speaker (`portal_audio`) and its
   volume (`portal_speaker_volume`), showing who talks from a trap (`portal_speaker_overlay`).
@@ -83,6 +82,8 @@ one to take off, Continue takes them off. See [portal.md](portal.md#portal-check
   button does in the game (`pad_map_a` ... `pad_map_rs`, e.g. a shoulder button doing B's job) and
   how strongly each player's controller vibrates (`pad_rumble_p1` / `_p2`, 10 % steps, the
   controller buzzes at each change; SwapForceRecomp #71, #73).
+- **Extras:** Nightmare from the start (`nightmare_from_start`, off), villain time only drops on hits
+  (`villain_time_hits_only`, off, #18; a cheat: achievements don't unlock while it's on).
 - **Advanced:** opens the SDK's list of every setting (F10, keyboard and mouse).
 
 LB / RB or LT / RT switch the page, up / down pick a setting, left / right (or A) change it, B or

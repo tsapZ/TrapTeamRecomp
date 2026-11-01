@@ -68,6 +68,7 @@ set(TRAPTEAMRECOMP_SOURCES
     src/hooks/post_effects_hook.cpp
     src/hooks/scene_size_hook.cpp
     src/hooks/ultrawide_hook.cpp
+    src/hooks/villain_time_hook.cpp
     src/hooks/where_hook.cpp
 )
 

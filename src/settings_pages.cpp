@@ -510,6 +510,13 @@ SettingsPage ExtrasPage() {
        "\n"
        "Dein Spielstand bleibt, wie er ist: Aus, ist Albtraum wieder gesperrt, bis du ihn "
        "freispielst."});
+  // #18: src/hooks/villain_time_hook.cpp skips the script's per-second drain; hits still count.
+  page.settings.push_back(skylanders::CheatSetting(
+      {"villain_time_hits_only", "Villain time only drops on hits", "Schurkenzeit sinkt nur bei Treffern",
+       "A villain you play from a trap no longer runs out of time by itself: its bar only goes down "
+       "when it gets hit, like a health bar.",
+       "Die Zeit eines Schurken aus einer Falle l\xC3\xA4uft nicht mehr von selbst ab: Sein Balken "
+       "sinkt nur, wenn er getroffen wird, wie eine Lebensleiste."}));
   return page;
 }
 

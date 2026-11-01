@@ -38,50 +38,17 @@
 #include <rex/ppc/context.h>
 #include <rex/system/kernel_state.h>
 
+#include "script_objects.h"
+
 REXCVAR_DEFINE_BOOL(nightmare_from_start, false, "Game",
                     "Nightmare difficulty can be picked from the start, without finishing Story Mode "
                     "first (the save is not changed)");
 
 namespace {
 
-// The guest bytes at `address`, or null when they aren't all readable.
-const uint8_t* Readable(uint8_t* base, uint32_t address, uint32_t size) {
-  if (address < 0x10000 || address > 0xFFFFFFFFu - size) return nullptr;
-  for (const uint32_t at : {address, address + size - 1}) {
-    size_t length = 1;
-    rex::memory::PageAccess access = rex::memory::PageAccess::kNoAccess;
-    if (!rex::memory::QueryProtect(base + at, length, access) || access == rex::memory::PageAccess::kNoAccess) {
-      return nullptr;
-    }
-  }
-  return base + address;
-}
-
-bool ReadU32(uint8_t* base, uint32_t address, uint32_t& out) {
-  const uint8_t* p = Readable(base, address, 4);
-  if (!p) return false;
-  out = rex::memory::load_and_swap<uint32_t>(p);
-  return true;
-}
-
-// Whether the name pointer at `address` points to exactly `text` (with its terminator).
-bool NameIs(uint8_t* base, uint32_t address, const char* text) {
-  uint32_t string = 0;
-  if (!ReadU32(base, address, string)) return false;
-  const uint32_t size = uint32_t(std::strlen(text)) + 1;
-  const uint8_t* p = Readable(base, string & ~1u, size);  // the tag bit off
-  return p && std::memcmp(p, text, size) == 0;
-}
-
-// The last item of the stack at `address` (a pointer to it), or 0.
-uint32_t LastItem(uint8_t* base, uint32_t stack_field) {
-  uint32_t stack = 0, count = 0, items = 0, item = 0;
-  if (!ReadU32(base, stack_field, stack) || !ReadU32(base, stack + 8, count) || count == 0 || count > 16 ||
-      !ReadU32(base, stack + 0x14, items) || !ReadU32(base, items + 4 * (count - 1), item)) {
-    return 0;
-  }
-  return item;
-}
+using trapteamrecomp::script::LastItem;
+using trapteamrecomp::script::NameIs;
+using trapteamrecomp::script::ReadU32;
 
 bool IsNightmareCheck(uint8_t* base, uint32_t op) {
   // The op and its right side the game has just read (no check needed, and this runs for every

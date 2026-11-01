@@ -42,6 +42,19 @@ address = 0x82285CE0
 name = "NightmareCheckHook"
 registers = ["r3", "r31"]
 
+# 0x82288160 is fsubs f12,f0,f13 in sub_822880B0, the scripts' subtraction (it evaluates the
+# expression in r30: its left value into the result at r31, then f0, its right value into f13, and
+# stores f0 - f13). Found from the villain timer's script ("Villain Timer Internal - Update" in
+# Sky_Allies.ai, decoded from a heap snapshot: "control.timer value = control.timer value - time
+# elapsed this frame" while the villain plays) to the function its expression points to.
+# src/hooks/villain_time_hook.cpp sets f13 to 0 for that one expression when
+# villain_time_hits_only is on (off by default), so the time drops only on hits (another macro);
+# f13 isn't read after the fsubs.
+[[midasm_hook]]
+address = 0x82288160
+name = "VillainTimeDrainHook"
+registers = ["r30", "f13"]
+
 [[midasm_hook]]
 address = 0x821A5FE8
 name = "BinkCloseHook"
