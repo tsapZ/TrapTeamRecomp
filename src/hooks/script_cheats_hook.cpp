@@ -39,20 +39,21 @@
 //
 // Only that subtraction has "creature info temp.hp" on the left and "damage" on the right, but the
 // macro serves every creature: the enemies' hits come through it too (seen in a test: 200, 300, 66 ...
-// from Enigma's attacks), so it is skipped only for the player's creature. The scripts run each
-// creature's macros with a context of its own, the r5 that sub_822877A8 (evaluate an expression,
-// assign it) hands on (config/default.toml); every player hit in the test came with one context, the
-// enemies' with others. Which context is the player's is learned from the HUD: "UI - Health Bar -
-// Update" takes the same hit off the bar's own copy of the health right after ("damage taken" off
-// <the bar>.hp), for the player's bar only. So a hit from an unknown context lands; a bar update
-// that follows it within half a second with the same amount names its context as a player's, and
-// from then on that context's hits are kept off, and so are their bar updates (the bar would run
-// empty while the Skylander stands). A kept-off hit that no bar update follows means the context
+// from Enigma's attacks), so it is skipped only for the player's creature. Each creature has a
+// health variable of its own: sub_822877A8 (evaluate an expression, assign it) gets the variable it
+// assigns to in r5 (config/default.toml), for this expression the hurt creature's "hp" instance (a
+// script variable: vtable 82109360, name "hp", the health at +0x20; seen in a snapshot holding 349,
+// the HUD's number). Which one is the player's is learned from the HUD: "UI - Health Bar - Update"
+// takes the same hit off the bar's own copy of the health right after ("damage taken" off
+// <the bar>.hp), for the player's bar only. So a hit on an unknown creature lands; a bar update that
+// follows it within half a second with the same amount names its health variable as a player's, and
+// from then on that variable's hits are kept off, and so are their bar updates (the bar would run
+// empty while the Skylander stands). A kept-off hit that no bar update follows means the variable
 // isn't a player's (any more: a level loads its creatures anew), and it is forgotten. So the first
 // hit a Skylander takes after coming in still counts, none after it. Tested 2026-11-02 in Level_302
 // (route tt_health_attack.txt, Enigma among the first enemies, attacking): his first hit (30) landed
-// and named his context, the next eight (30 to 81) were kept off, the bar stayed at 349 of 379, and
-// all of his hits on the enemies (30 to 300, a dozen contexts) landed.
+// and named his health variable, the next eight (30 to 81) were kept off, the bar stayed at 349 of
+// 379, and all of his hits on the enemies (30 to 300, a dozen of them) landed.
 //
 // Nothing is written to the game's memory; turned off again, both run from where they are.
 
@@ -83,8 +84,9 @@ using trapteamrecomp::script::LastItem;
 using trapteamrecomp::script::NameIs;
 using trapteamrecomp::script::StackItem;
 
-// The context of the expression being evaluated (ScriptEvalContextHook, on the scripts' thread).
-thread_local uint32_t g_eval_context = 0;
+// The variable the expression being evaluated is assigned to (ScriptAssignTargetHook, on the
+// scripts' thread).
+thread_local uint32_t g_assign_target = 0;
 
 enum class Kind : uint8_t { kOther, kVillainTimeDrain, kPlayerDamage, kBarDamage };
 
@@ -147,20 +149,20 @@ bool SkipSubtraction(const PPCRegister& r30, double right, const char* path) {
   // The recent hits, kept off or not, waiting for the player's bar update (see the top).
   struct Hit {
     double amount;
-    uint32_t context;
+    uint32_t target;  // the hurt creature's hp variable
     bool kept_off;
     std::chrono::steady_clock::time_point when;
   };
   thread_local std::deque<Hit> recent;
-  thread_local std::unordered_set<uint32_t> player_contexts;
+  thread_local std::unordered_set<uint32_t> player_hp;  // the players' hp variables
   const auto now = std::chrono::steady_clock::now();
   while (!recent.empty() && now - recent.front().when > std::chrono::milliseconds(500)) {
-    if (recent.front().kept_off) player_contexts.erase(recent.front().context);  // no bar followed
+    if (recent.front().kept_off) player_hp.erase(recent.front().target);  // no bar followed
     recent.pop_front();
   }
   if (kind == Kind::kPlayerDamage && health) {
-    const bool keep_off = player_contexts.count(g_eval_context) != 0;
-    if (recent.size() < 32) recent.push_back({right, g_eval_context, keep_off, now});
+    const bool keep_off = player_hp.count(g_assign_target) != 0;
+    if (recent.size() < 32) recent.push_back({right, g_assign_target, keep_off, now});
     if (keep_off) {
       static bool logged = false;
       if (!logged) {
@@ -174,7 +176,7 @@ bool SkipSubtraction(const PPCRegister& r30, double right, const char* path) {
     for (auto it = recent.begin(); it != recent.end(); ++it) {
       if (std::fabs(it->amount - right) >= 0.01) continue;
       const bool kept_off = it->kept_off;
-      if (!kept_off && player_contexts.size() < 8 && player_contexts.insert(it->context).second) {
+      if (!kept_off && player_hp.size() < 8 && player_hp.insert(it->target).second) {
         REXLOG_INFO("Extras: no health loss knows a player's creature now (after its first hit)");
       }
       recent.erase(it);
@@ -186,9 +188,9 @@ bool SkipSubtraction(const PPCRegister& r30, double right, const char* path) {
 
 }  // namespace
 
-// The entry of sub_822877A8 (evaluate the expression in r3, assign it to r4): r5 is the context it
-// hands on, one per creature running the macro (see the top). Only noted.
-void ScriptEvalContextHook(PPCRegister& r5) { g_eval_context = r5.u32; }
+// The entry of sub_822877A8 (evaluate the expression in r3, assign it to the path r4): r5 is the
+// variable it assigns to (see the top). Only noted.
+void ScriptAssignTargetHook(PPCRegister& r5) { g_assign_target = r5.u32; }
 
 // fsubs f12,f0,f13: both values floats.
 void ScriptSubtractFloatHook(PPCRegister& r30, PPCRegister& f13) {

@@ -523,10 +523,10 @@ launcher's achievements screen.
   below 0. src/hooks/script_cheats_hook.cpp (the villain time hook, renamed, now on all three paths
   of the scripts' subtraction: floats, a float minus an int, two ints) subtracts 0 there, but only
   for the player's creature: the macro serves every creature (the enemies' hits came through it in a
-  test). The creature is told by the script context sub_822877A8 hands on (r5, noted by a hook at
-  0x822877B4); the player's is learned from the HUD's bar ("UI - Health Bar - Update" takes the same
-  hit off its own copy right after, for the player's bar only), so the first hit after a Skylander
-  comes in still counts. Those bar updates are skipped too. Tested in Level_302 with Enigma among the
+  test). The creature is told by its own "hp" variable, which sub_822877A8 gets as the assignment's
+  target (r5, noted by a hook at 0x822877B4); the player's is learned from the HUD's bar ("UI - Health
+  Bar - Update" takes the same hit off its own copy right after, for the player's bar only), so the
+  first hit after a Skylander comes in still counts. Those bar updates are skipped too. Tested in Level_302 with Enigma among the
   first enemies: his first hit landed, the next eight were kept off (the bar stayed at 349 of 379)
   and all his hits on the enemies landed. Found by decoding the scripts from a heap snapshot after
   twelve runs of searching memory for the value missed it.
