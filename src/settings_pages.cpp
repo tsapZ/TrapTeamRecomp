@@ -510,7 +510,13 @@ SettingsPage ExtrasPage() {
        "\n"
        "Dein Spielstand bleibt, wie er ist: Aus, ist Albtraum wieder gesperrt, bis du ihn "
        "freispielst."});
-  // #18: src/hooks/villain_time_hook.cpp skips the script's per-second drain; hits still count.
+  // As in Spyro's Adventure, same setting name: src/hooks/script_cheats_hook.cpp keeps a hit's
+  // damage off the player's health in the On Hurt script.
+  page.settings.push_back(skylanders::CheatSetting(
+      {"cheat_no_health_loss", "No health loss", "Keine Lebenspunkte verlieren",
+       "Your Skylanders don't lose health when they get hit.",
+       "Deine Skylander verlieren keine Lebenspunkte, wenn sie getroffen werden."}));
+  // #18: src/hooks/script_cheats_hook.cpp skips the script's per-second drain; hits still count.
   page.settings.push_back(skylanders::CheatSetting(
       {"cheat_villain_time_hits_only", "Villain time only drops on hits", "Schurkenzeit sinkt nur bei Treffern",
        "A villain you play from a trap no longer runs out of time by itself: its bar only goes down "

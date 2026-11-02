@@ -503,7 +503,7 @@ launcher's achievements screen.
   in "Villain - On Hurt Timer Reduction"; the update is skipped where the levels turn on
   "Villain - Timer - Set Timer Unlimited Mode" (`timer update disabled`: the Academy, Level_302's
   ride down the dune, where the bar still falls from hits) and in challenges. A mid-asm hook on the scripts' float subtraction
-  (0x82288160 in sub_822880B0, src/hooks/villain_time_hook.cpp) subtracts 0 for exactly the
+  (0x82288160 in sub_822880B0, now src/hooks/script_cheats_hook.cpp) subtracts 0 for exactly the
   expression "control.timer value - time elapsed this frame" (the only one of the 536 loaded
   subtractions with that right side), so hits, the tag-out at 0, the recharge and the bar work as
   before. The script readers the Nightmare hook had are shared in src/hooks/script_objects.h.
@@ -514,3 +514,16 @@ launcher's achievements screen.
 ## 2026-11-01: 0.4.0-beta.3
 
 - The setup's version for what came since the last one: A bit faster renderer (unchanged shader constants skipped, only changed textures reloaded); Trap Team also gets the villain time cheat (#18)
+
+## 2026-11-02: no health loss
+
+- **No health loss** (`cheat_no_health_loss`, F4 > Extras, off; the same setting name as Spyro's
+  Adventure's, a cheat). Health is a script value too: "On Hurt - Player On Hurt" does
+  `creature info temp.hp = creature info temp.hp - damage` (two ints), then beats the creature
+  below 0. src/hooks/script_cheats_hook.cpp (the villain time hook, renamed, now on all three paths
+  of the scripts' subtraction: floats, a float minus an int, two ints) subtracts 0 there. The HUD's
+  bar keeps its own copy ("UI - Health Bar - Update": `<bar>.hp - damage taken`, for every bar), so
+  that one is skipped only right after a hit kept off the player with the same amount. Tested in
+  Level_302 with Enigma idle among the first enemies: without it beaten before 20 s, with it the bar
+  stayed at 379 for 40 s and the enemies still went down. Found by decoding the scripts from a heap
+  snapshot after twelve runs of searching memory for the value missed it.
