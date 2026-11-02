@@ -37,15 +37,22 @@
 //     if creature info temp.hp < 0: the creature is beaten (and a killing blow is noted)
 //     knockback, freeze frames, the hurt sound and animation
 //
-// Only that subtraction has "creature info temp.hp" on the left and "damage" on the right. With it
-// skipped the hit still lands (knockback, sound, animation), the health stays. The HUD's bar keeps a
-// copy of its own: "UI - Health Bar - Update" takes "damage taken" off <the bar>.hp right after, so
-// with only the first skipped the Skylander stood on with an empty bar (tested). That macro serves
-// every bar, so its subtraction is skipped only when it follows a hit kept off the player within
-// half a second with the same amount (the ints 30, 36, 38 ... in the test came in pairs). Tested
-// 2026-11-02 in Level_302 (route tt_health_test.txt, Enigma idle among the first enemies): without
-// the option 379 -> beaten before 20 s, with it the bar stayed at 379 for 40 s of hits and the
-// enemies still went down to his attacks.
+// Only that subtraction has "creature info temp.hp" on the left and "damage" on the right, but the
+// macro serves every creature: the enemies' hits come through it too (seen in a test: 200, 300, 66 ...
+// from Enigma's attacks), so it is skipped only for the player's creature. The scripts run each
+// creature's macros with a context of its own, the r5 that sub_822877A8 (evaluate an expression,
+// assign it) hands on (config/default.toml); every player hit in the test came with one context, the
+// enemies' with others. Which context is the player's is learned from the HUD: "UI - Health Bar -
+// Update" takes the same hit off the bar's own copy of the health right after ("damage taken" off
+// <the bar>.hp), for the player's bar only. So a hit from an unknown context lands; a bar update
+// that follows it within half a second with the same amount names its context as a player's, and
+// from then on that context's hits are kept off, and so are their bar updates (the bar would run
+// empty while the Skylander stands). A kept-off hit that no bar update follows means the context
+// isn't a player's (any more: a level loads its creatures anew), and it is forgotten. So the first
+// hit a Skylander takes after coming in still counts, none after it. Tested 2026-11-02 in Level_302
+// (route tt_health_attack.txt, Enigma among the first enemies, attacking): his first hit (30) landed
+// and named his context, the next eight (30 to 81) were kept off, the bar stayed at 349 of 379, and
+// all of his hits on the enemies (30 to 300, a dozen contexts) landed.
 //
 // Nothing is written to the game's memory; turned off again, both run from where they are.
 
@@ -54,6 +61,7 @@
 #include <cstdint>
 #include <deque>
 #include <unordered_map>
+#include <unordered_set>
 
 #include <rex/cvar.h>
 #include <rex/logging.h>
@@ -74,6 +82,9 @@ namespace {
 using trapteamrecomp::script::LastItem;
 using trapteamrecomp::script::NameIs;
 using trapteamrecomp::script::StackItem;
+
+// The context of the expression being evaluated (ScriptEvalContextHook, on the scripts' thread).
+thread_local uint32_t g_eval_context = 0;
 
 enum class Kind : uint8_t { kOther, kVillainTimeDrain, kPlayerDamage, kBarDamage };
 
@@ -133,38 +144,51 @@ bool SkipSubtraction(const PPCRegister& r30, double right, const char* path) {
     }
     return true;
   }
-  // The hits kept off the player, for their HUD bar: the bar macro takes the same hit off its own
-  // copy of the health right after, and a bar of a hit that was kept off would run empty while the
-  // Skylander stands. Only a bar update that follows such a hit with the same amount is skipped, so a
-  // boss's or another creature's bar still goes down.
+  // The recent hits, kept off or not, waiting for the player's bar update (see the top).
   struct Hit {
     double amount;
+    uint32_t context;
+    bool kept_off;
     std::chrono::steady_clock::time_point when;
   };
-  thread_local std::deque<Hit> kept_off;
+  thread_local std::deque<Hit> recent;
+  thread_local std::unordered_set<uint32_t> player_contexts;
   const auto now = std::chrono::steady_clock::now();
-  while (!kept_off.empty() && now - kept_off.front().when > std::chrono::milliseconds(500)) kept_off.pop_front();
+  while (!recent.empty() && now - recent.front().when > std::chrono::milliseconds(500)) {
+    if (recent.front().kept_off) player_contexts.erase(recent.front().context);  // no bar followed
+    recent.pop_front();
+  }
   if (kind == Kind::kPlayerDamage && health) {
-    static bool logged = false;
-    if (!logged) {
-      logged = true;
-      REXLOG_INFO("Extras: no health loss kept a hit's damage off ({})", path);
+    const bool keep_off = player_contexts.count(g_eval_context) != 0;
+    if (recent.size() < 32) recent.push_back({right, g_eval_context, keep_off, now});
+    if (keep_off) {
+      static bool logged = false;
+      if (!logged) {
+        logged = true;
+        REXLOG_INFO("Extras: no health loss kept a hit's damage off ({})", path);
+      }
     }
-    if (kept_off.size() < 16) kept_off.push_back({right, now});
-    return true;
+    return keep_off;
   }
   if (kind == Kind::kBarDamage && health) {
-    for (auto it = kept_off.begin(); it != kept_off.end(); ++it) {
-      if (std::fabs(it->amount - right) < 0.01) {
-        kept_off.erase(it);
-        return true;
+    for (auto it = recent.begin(); it != recent.end(); ++it) {
+      if (std::fabs(it->amount - right) >= 0.01) continue;
+      const bool kept_off = it->kept_off;
+      if (!kept_off && player_contexts.size() < 8 && player_contexts.insert(it->context).second) {
+        REXLOG_INFO("Extras: no health loss knows a player's creature now (after its first hit)");
       }
+      recent.erase(it);
+      return kept_off;
     }
   }
   return false;
 }
 
 }  // namespace
+
+// The entry of sub_822877A8 (evaluate the expression in r3, assign it to r4): r5 is the context it
+// hands on, one per creature running the macro (see the top). Only noted.
+void ScriptEvalContextHook(PPCRegister& r5) { g_eval_context = r5.u32; }
 
 // fsubs f12,f0,f13: both values floats.
 void ScriptSubtractFloatHook(PPCRegister& r30, PPCRegister& f13) {

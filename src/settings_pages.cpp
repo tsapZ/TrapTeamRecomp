@@ -514,8 +514,11 @@ SettingsPage ExtrasPage() {
   // damage off the player's health in the On Hurt script.
   page.settings.push_back(skylanders::CheatSetting(
       {"cheat_no_health_loss", "No health loss", "Keine Lebenspunkte verlieren",
-       "Your Skylanders don't lose health when they get hit.",
-       "Deine Skylander verlieren keine Lebenspunkte, wenn sie getroffen werden."}));
+       "Your Skylanders don't lose health when they get hit. Only the first hit after a Skylander "
+       "comes in still counts: that's how the game tells your Skylander from the enemies.",
+       "Deine Skylander verlieren keine Lebenspunkte, wenn sie getroffen werden. Nur der erste "
+       "Treffer, nachdem ein Skylander dazukommt, z\xC3\xA4hlt noch: daran erkennt das Spiel deinen "
+       "Skylander unter den Gegnern."}));
   // #18: src/hooks/script_cheats_hook.cpp skips the script's per-second drain; hits still count.
   page.settings.push_back(skylanders::CheatSetting(
       {"cheat_villain_time_hits_only", "Villain time only drops on hits", "Schurkenzeit sinkt nur bei Treffern",

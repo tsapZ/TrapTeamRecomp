@@ -67,6 +67,17 @@ address = 0x82288120
 name = "ScriptSubtractIntsHook"
 registers = ["r30", "r9"]
 
+# 0x822877B4 is just after the stack frame in sub_822877A8, which evaluates a script expression (r3)
+# and assigns it to a variable path (r4), handing r5 on to the assignment (sub_822834D0): a context
+# per creature running the macro (one for all of the player's hits in a test, others for each
+# enemy's). Found from the villain timer's write chain (setter <- sub_822834D0 <- sub_822877A8 <-
+# the interpreter). src/hooks/script_cheats_hook.cpp only notes r5, so that no health loss keeps
+# the player's hits off and not the enemies' (the On Hurt macro serves every creature).
+[[midasm_hook]]
+address = 0x822877B4
+name = "ScriptEvalContextHook"
+registers = ["r5"]
+
 [[midasm_hook]]
 address = 0x821A5FE8
 name = "BinkCloseHook"
