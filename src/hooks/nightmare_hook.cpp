@@ -43,6 +43,13 @@
 REXCVAR_DEFINE_BOOL(nightmare_from_start, false, "Game",
                     "Nightmare difficulty can be picked from the start, without finishing Story Mode "
                     "first (the save is not changed)");
+// EXPERIMENT (TrapTeamRecomp #20): the Trap Masters' Traptanium boost (the Guardian Crystal powerup:
+// a bigger, glowing weapon and "Trapper - Boosted Damage Mult" on hits) is switched on by level scripts
+// through "Minion - Guardian Crystal Power - Switch" (master switch), and "Minion - Guardian Crystal
+// Power - Manage" checks that switch against 0. With this on, those checks come out as if it were on.
+REXCVAR_DEFINE_BOOL(cheat_traptanium_boost, false, "Extras",
+                    "Experiment: Trap Masters' Traptanium boost (bigger glowing weapon, more damage) "
+                    "always switched on");
 
 namespace {
 
@@ -73,10 +80,34 @@ bool IsNightmareCheck(uint8_t* base, uint32_t op) {
   return allow && NameIs(base, allow + 0x1C, "allow nightmare");
 }
 
+// A check of the Guardian Crystal powerup's master switch against the literal 0 ("guardian crystal
+// powerup data ref.master switch"): its operator (1 ==, 4 !=), or 0 for any other check.
+uint32_t MasterSwitchCheckOperator(uint8_t* base, uint32_t op) {
+  using rex::memory::load_and_swap;
+  const uint32_t oper = load_and_swap<uint32_t>(base + op + 0x20);
+  if (oper != 1 && oper != 4) return 0;
+  const uint32_t rhs = load_and_swap<uint32_t>(base + op + 0x24);
+  const uint32_t literal = rhs ? load_and_swap<uint32_t>(base + rhs + 8) : 0;
+  if (!literal || load_and_swap<uint32_t>(base + literal + 8) != 0 ||
+      load_and_swap<uint32_t>(base + literal + 0x24) != 0) {
+    return 0;
+  }
+  const uint32_t last = LastItem(base, op + 0x1C);
+  const uint32_t first = trapteamrecomp::script::StackItem(base, op + 0x1C, 0);
+  if (!last || !first || !NameIs(base, last + 0x1C, "master switch") ||
+      !NameIs(base, first + 0x1C, "guardian crystal powerup data ref")) {
+    return 0;
+  }
+  return oper;
+}
+
 }  // namespace
 
 void NightmareCheckHook(PPCRegister& r3, PPCRegister& r31) {
-  if (!REXCVAR_GET(nightmare_from_start) || r3.s32 >= 1) return;
+  const bool nightmare_on = REXCVAR_GET(nightmare_from_start);
+  const bool boost_on = REXCVAR_GET(cheat_traptanium_boost);
+  // Nightmare only needs the checks that came out false; the boost's == 0 check comes out true.
+  if (!(nightmare_on && r3.s32 < 1) && !boost_on) return;
   uint8_t* base = rex::system::kernel_state()->memory()->virtual_membase();
   // Every check that comes out false passes here, many a frame, and the walk to the names asks
   // the memory's protection a dozen times (system calls): with the option on, the game slowed down
@@ -86,20 +117,33 @@ void NightmareCheckHook(PPCRegister& r3, PPCRegister& r31) {
   struct Seen {
     uint64_t sides;
     bool nightmare;
+    uint32_t master_switch;  // MasterSwitchCheckOperator
   };
   thread_local std::unordered_map<uint32_t, Seen> seen;
   const uint32_t op = r31.u32;
   const uint64_t sides = (uint64_t(rex::memory::load_and_swap<uint32_t>(base + op + 0x1C)) << 32) |
                          rex::memory::load_and_swap<uint32_t>(base + op + 0x24);
   bool nightmare;
+  uint32_t master_switch;
   if (auto it = seen.find(op); it != seen.end() && it->second.sides == sides) {
     nightmare = it->second.nightmare;
+    master_switch = it->second.master_switch;
   } else {
     if (seen.size() > 65536) seen.clear();
     nightmare = IsNightmareCheck(base, op);
-    seen[op] = {sides, nightmare};
+    master_switch = MasterSwitchCheckOperator(base, op);
+    seen[op] = {sides, nightmare, master_switch};
   }
-  if (!nightmare) return;
+  if (boost_on && master_switch) {
+    static bool logged_boost = false;
+    if (!logged_boost) {
+      logged_boost = true;
+      REXLOG_INFO("Extras: Traptanium boost experiment forces a master switch check");
+    }
+    r3.u64 = master_switch == 4 ? 1 : 0;  // != 0 true, == 0 false
+    return;
+  }
+  if (!nightmare || !nightmare_on || r3.s32 >= 1) return;
   static bool logged = false;
   if (!logged) {
     logged = true;
