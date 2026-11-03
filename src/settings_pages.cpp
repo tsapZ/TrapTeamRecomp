@@ -527,6 +527,14 @@ SettingsPage ExtrasPage() {
        "Deine Skylander verlieren keine Lebenspunkte, wenn sie getroffen werden. Nur der erste "
        "Treffer, nachdem ein Skylander dazukommt, z\xC3\xA4hlt noch: daran erkennt das Spiel deinen "
        "Skylander unter den Gegnern."}));
+  // #20: src/hooks/nightmare_hook.cpp reads the Guardian Crystal powerup's master switch as on.
+  page.settings.push_back(skylanders::CheatSetting(
+      {"cheat_traptanium_boost", "Traptanium boost always on", "Traptanium-Boost immer an",
+       "Trap Masters always have their Traptanium boost: their weapon glows and grows, and their hits "
+       "do 1.5 times the damage, not only in the fights where the game turns it on.",
+       "Trap Master haben ihren Traptanium-Boost immer: Ihre Waffe leuchtet und w\xC3\xA4" "chst, und "
+       "ihre Treffer machen 1,5-mal so viel Schaden, nicht nur in den K\xC3\xA4mpfen, in denen das "
+       "Spiel ihn einschaltet."}));
   // #18: src/hooks/script_cheats_hook.cpp skips the script's per-second drain; hits still count.
   page.settings.push_back(skylanders::CheatSetting(
       {"cheat_villain_time_hits_only", "Villain time only drops on hits", "Schurkenzeit sinkt nur bei Treffern",

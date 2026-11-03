@@ -43,13 +43,15 @@
 REXCVAR_DEFINE_BOOL(nightmare_from_start, false, "Game",
                     "Nightmare difficulty can be picked from the start, without finishing Story Mode "
                     "first (the save is not changed)");
-// EXPERIMENT (TrapTeamRecomp #20): the Trap Masters' Traptanium boost (the Guardian Crystal powerup:
-// a bigger, glowing weapon and "Trapper - Boosted Damage Mult" on hits) is switched on by level scripts
-// through "Minion - Guardian Crystal Power - Switch" (master switch), and "Minion - Guardian Crystal
-// Power - Manage" checks that switch against 0. With this on, those checks come out as if it were on.
+// TrapTeamRecomp #20: the Trap Masters' Traptanium boost (the Guardian Crystal powerup: a bigger,
+// glowing weapon and "Trapper - Boosted Damage Mult" on hits) is switched on by level scripts through
+// "Minion - Guardian Crystal Power - Switch" (master switch), and "Minion - Guardian Crystal Power -
+// Manage" checks that switch against 0. With this on, those checks come out as if it were on.
+// Measured 2026-11-03 in Level_302 with Enigma: his hits on the enemies 30 / 66 / 138 without it,
+// 45 / 99 / 207 with it (1.5 times), and his orb glows white and bigger.
 REXCVAR_DEFINE_BOOL(cheat_traptanium_boost, false, "Extras",
-                    "Experiment: Trap Masters' Traptanium boost (bigger glowing weapon, more damage) "
-                    "always switched on");
+                    "Trap Masters' Traptanium boost always on: their weapon glows and grows, and their "
+                    "hits do 1.5 times the damage (achievements don't unlock while it's on)");
 
 namespace {
 
