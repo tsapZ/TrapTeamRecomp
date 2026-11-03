@@ -530,3 +530,7 @@ launcher's achievements screen.
   first enemies: his first hit landed, the next eight were kept off (the bar stayed at 349 of 379)
   and all his hits on the enemies landed. Found by decoding the scripts from a heap snapshot after
   twelve runs of searching memory for the value missed it.
+
+## 2026-11-03: shared libraries
+
+- Xbox 360 portal over WinUSB: each read can hold two 32-byte frames (the portal sends full packets), each now goes to the game; the first 12 commands are logged (TrapTeamRecomp #19)
