@@ -554,3 +554,17 @@ launcher's achievements screen.
 ## 2026-11-03: 0.4.0-beta.8
 
 - The setup's version for what came since the last one: Xbox 360 portal fourth try (TrapTeamRecomp #19)
+
+## 2026-11-03: Traptanium boost always on (TrapTeamRecomp #20)
+
+- F4 > Extras > Traptanium boost always on (`cheat_traptanium_boost`, off, a cheat). The boost is the Trap
+  Masters' "Guardian Crystal powerup" (S4_GuardianCrystalPowerup_macros.ai, loaded with each Trap
+  Master): "Minion - Guardian Crystal Power - Manage" grows and lights the weapon and turns on
+  "Trapper - Boosted Damage Mult" only while the powerup's master switch is on, and level scripts set
+  that switch through "Minion - Guardian Crystal Power - Switch". src/hooks/nightmare_hook.cpp (the
+  scripts' check-value hook at 0x82285CE0) reads the checks of "guardian crystal powerup data
+  ref.master switch" against 0 as if it were on, classified once per op.
+- Tested in Level_302 with Enigma (the developer kit's level command; routes in the kit's notes):
+  standing still his orb glows white and bigger with it, dark purple without; his hits on the enemies
+  30 / 66 / 138 without it, 45 / 99 / 207 with it (1.5 times). Superball and the Rage Mage orb,
+  the issue's other two, are still open.
