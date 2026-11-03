@@ -572,3 +572,7 @@ launcher's achievements screen.
 ## 2026-11-03: 0.4.0-beta.9
 
 - The setup's version for what came since the last one: Trap Team: Traptanium boost always on (Extras cheat, TrapTeamRecomp #20)
+
+## 2026-11-03: shared libraries
+
+- Xbox 360 portal: every endpoint logged at open, every non-status reply logged (TrapTeamRecomp #19)
