@@ -542,6 +542,7 @@ SettingsPage ExtrasPage() {
        "when it gets hit, like a health bar.",
        "Die Zeit eines Schurken aus einer Falle l\xC3\xA4uft nicht mehr von selbst ab: Sein Balken "
        "sinkt nur, wenn er getroffen wird, wie eine Lebensleiste."}));
+  page.settings.push_back(skylanders::FullGoldCheatSetting());
   return page;
 }
 
