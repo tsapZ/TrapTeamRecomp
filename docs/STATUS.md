@@ -568,3 +568,7 @@ launcher's achievements screen.
   standing still his orb glows white and bigger with it, dark purple without; his hits on the enemies
   30 / 66 / 138 without it, 45 / 99 / 207 with it (1.5 times). Superball and the Rage Mage orb,
   the issue's other two, are still open.
+
+## 2026-11-03: 0.4.0-beta.9
+
+- The setup's version for what came since the last one: Trap Team: Traptanium boost always on (Extras cheat, TrapTeamRecomp #20)
