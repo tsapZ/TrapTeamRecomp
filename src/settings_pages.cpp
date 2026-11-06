@@ -555,6 +555,9 @@ SettingsPage ExtrasPage() {
        "Die Zeit eines Schurken aus einer Falle l\xC3\xA4uft nicht mehr von selbst ab: Sein Balken "
        "sinkt nur, wenn er getroffen wird, wie eine Lebensleiste."}));
   page.settings.push_back(skylanders::FullGoldCheatSetting());
+  // CoL #48: src/hooks/multiplier_cheats_hook.cpp, the Award Money / Award Experience scripts.
+  page.settings.push_back(skylanders::GoldMultiplierCheatSetting());
+  page.settings.push_back(skylanders::XpMultiplierCheatSetting());
   return page;
 }
 

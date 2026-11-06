@@ -65,6 +65,7 @@ set(TRAPTEAMRECOMP_SOURCES
     src/hooks/attribute_cheats_hook.cpp
     src/hooks/fxaa_scale_hook.cpp
     src/hooks/intro_skip_hook.cpp
+    src/hooks/multiplier_cheats_hook.cpp
     src/hooks/nightmare_hook.cpp
     src/hooks/post_effects_hook.cpp
     src/hooks/scene_size_hook.cpp

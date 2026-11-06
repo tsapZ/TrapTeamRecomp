@@ -70,6 +70,46 @@ address = 0x82288120
 name = "ScriptSubtractIntsHook"
 registers = ["r30", "r9"]
 
+# sub_82287DB0 and sub_822883B0 are the scripts' addition and multiplication, built as the
+# subtraction above (the expression in r30, the right value from r1+80): two ints (0x82287E20 add
+# r8,r10,r11 and 0x82288420 mullw r8,r11,r9: r11 / r9 the right), two floats or an int made a float
+# with a float (0x82287E64 fadds f12,f0,f13 and 0x82288460 fmuls f12,f0,f13: f13 the right) and a
+# float with an int (0x82287E90 fadds f10,f11,f0 and 0x8228848C fmuls f10,f11,f0: f11 the int made a
+# float). Found 2026-11-06 from "Player - Minion - Award Money" (amount = val + amount) and "Player -
+# Minion - Award Experience" (amount = exp value * amount), decoded from a Level_302 snapshot.
+# src/hooks/multiplier_cheats_hook.cpp scales the right value of exactly those two expressions by
+# cheat_gold_multiplier / cheat_xp_multiplier (1, off, by default). The registers aren't read after
+# the instruction.
+[[midasm_hook]]
+address = 0x82287E20
+name = "ScriptAddIntsHook"
+registers = ["r30", "r11"]
+
+[[midasm_hook]]
+address = 0x82287E64
+name = "ScriptAddFloatHook"
+registers = ["r30", "f13"]
+
+[[midasm_hook]]
+address = 0x82287E90
+name = "ScriptAddIntRightHook"
+registers = ["r30", "f11"]
+
+[[midasm_hook]]
+address = 0x82288420
+name = "ScriptMultiplyIntsHook"
+registers = ["r30", "r9"]
+
+[[midasm_hook]]
+address = 0x82288460
+name = "ScriptMultiplyFloatHook"
+registers = ["r30", "f13"]
+
+[[midasm_hook]]
+address = 0x8228848C
+name = "ScriptMultiplyIntRightHook"
+registers = ["r30", "f11"]
+
 # 0x822877B4 is just after the stack frame in sub_822877A8, which evaluates a script expression (r3)
 # and assigns it to a variable path (r4), handing r5 on to the assignment (sub_822834D0): the
 # variable assigned to, for the On Hurt subtraction the hurt creature's own "hp" instance (seen in a
