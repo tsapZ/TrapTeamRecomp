@@ -36,7 +36,10 @@ registers = ["r1"]
 # result (below 1 skips the op's next +0x1A ops), r31 the op. Found from the difficulty menu's
 # script ("Menu - 3d - Diff - Create": system flag 3 == 1 sets "allow nightmare") to the ops' execute
 # functions. src/hooks/nightmare_hook.cpp sets r3 to 1 for that one check when
-# nightmare_from_start is on (off by default); r3 is read only by the compare right after.
+# nightmare_from_start is on, and for the cheats the Guardian Crystal master switch checks
+# (cheat_traptanium_boost) and "On Hurt - Player On Hurt"'s crit and elemental zone checks
+# (src/hooks/attribute_cheats_hook.cpp: cheat_always_crit, cheat_elemental_power), all off by
+# default; r3 is read only by the compare right after.
 [[midasm_hook]]
 address = 0x82285CE0
 name = "NightmareCheckHook"

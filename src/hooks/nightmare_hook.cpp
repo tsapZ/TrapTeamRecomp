@@ -38,6 +38,7 @@
 #include <rex/ppc/context.h>
 #include <rex/system/kernel_state.h>
 
+#include "attribute_cheats_hook.h"
 #include "script_objects.h"
 
 REXCVAR_DEFINE_BOOL(nightmare_from_start, false, "Game",
@@ -83,7 +84,7 @@ bool IsNightmareCheck(uint8_t* base, uint32_t op) {
 }
 
 // A check of the Guardian Crystal powerup's master switch against the literal 0 ("guardian crystal
-// powerup data ref.master switch"): its operator (1 ==, 4 !=), or 0 for any other check.
+// powerup data ref.master switch"): its operator (1 ==, 4 >), or 0 for any other check.
 uint32_t MasterSwitchCheckOperator(uint8_t* base, uint32_t op) {
   using rex::memory::load_and_swap;
   const uint32_t oper = load_and_swap<uint32_t>(base + op + 0x20);
@@ -108,33 +109,53 @@ uint32_t MasterSwitchCheckOperator(uint8_t* base, uint32_t op) {
 void NightmareCheckHook(PPCRegister& r3, PPCRegister& r31) {
   const bool nightmare_on = REXCVAR_GET(nightmare_from_start);
   const bool boost_on = REXCVAR_GET(cheat_traptanium_boost);
+  const bool attribute_on = trapteamrecomp::attribute_cheats::AnyOn();
   // Nightmare only needs the checks that came out false; the boost's == 0 check comes out true.
-  if (!(nightmare_on && r3.s32 < 1) && !boost_on) return;
+  if (!(nightmare_on && r3.s32 < 1) && !boost_on && !attribute_on) return;
   uint8_t* base = rex::system::kernel_state()->memory()->virtual_membase();
   // Every check that comes out false passes here, many a frame, and the walk to the names asks
   // the memory's protection a dozen times (system calls): with the option on, the game slowed down
   // and its sound stuttered (TrapTeamRecomp #16). So each op is looked at once: its answer is
   // kept by its address, with its left and right side's pointers to tell a new script's op at the
-  // same address (another level) from it.
+  // same address (another level) from it. Each answer is worked out only once an option that needs
+  // it is on (`known` bits), so an option that is off costs nothing.
   struct Seen {
     uint64_t sides;
+    uint8_t known;  // 1 nightmare, 2 master_switch, 4 attribute
     bool nightmare;
     uint32_t master_switch;  // MasterSwitchCheckOperator
+    trapteamrecomp::attribute_cheats::Kind attribute;
   };
   thread_local std::unordered_map<uint32_t, Seen> seen;
   const uint32_t op = r31.u32;
   const uint64_t sides = (uint64_t(rex::memory::load_and_swap<uint32_t>(base + op + 0x1C)) << 32) |
                          rex::memory::load_and_swap<uint32_t>(base + op + 0x24);
-  bool nightmare;
-  uint32_t master_switch;
-  if (auto it = seen.find(op); it != seen.end() && it->second.sides == sides) {
-    nightmare = it->second.nightmare;
-    master_switch = it->second.master_switch;
-  } else {
+  auto it = seen.find(op);
+  if (it == seen.end() || it->second.sides != sides) {
     if (seen.size() > 65536) seen.clear();
-    nightmare = IsNightmareCheck(base, op);
-    master_switch = MasterSwitchCheckOperator(base, op);
-    seen[op] = {sides, nightmare, master_switch};
+    it = seen.insert_or_assign(op, Seen{sides, 0, false, 0, trapteamrecomp::attribute_cheats::Kind::kNone})
+             .first;
+  }
+  Seen& entry = it->second;
+  if (nightmare_on && r3.s32 < 1 && !(entry.known & 1)) {
+    entry.nightmare = IsNightmareCheck(base, op);
+    entry.known |= 1;
+  }
+  if (boost_on && !(entry.known & 2)) {
+    entry.master_switch = MasterSwitchCheckOperator(base, op);
+    entry.known |= 2;
+  }
+  if (attribute_on && !(entry.known & 4)) {
+    entry.attribute = trapteamrecomp::attribute_cheats::Classify(base, op);
+    entry.known |= 4;
+  }
+  const bool nightmare = (entry.known & 1) && entry.nightmare;
+  const uint32_t master_switch = (entry.known & 2) ? entry.master_switch : 0;
+  const auto attribute = attribute_on ? entry.attribute : trapteamrecomp::attribute_cheats::Kind::kNone;
+  // attribute_cheats_hook.cpp: always crit and elemental power everywhere.
+  if (attribute != trapteamrecomp::attribute_cheats::Kind::kNone) {
+    trapteamrecomp::attribute_cheats::Apply(attribute, r3);
+    return;
   }
   if (boost_on && master_switch) {
     static bool logged_boost = false;
@@ -142,7 +163,7 @@ void NightmareCheckHook(PPCRegister& r3, PPCRegister& r31) {
       logged_boost = true;
       REXLOG_INFO("Extras: Traptanium boost experiment forces a master switch check");
     }
-    r3.u64 = master_switch == 4 ? 1 : 0;  // != 0 true, == 0 false
+    r3.u64 = master_switch == 4 ? 1 : 0;  // > 0 true, == 0 false
     return;
   }
   if (!nightmare || !nightmare_on || r3.s32 >= 1) return;

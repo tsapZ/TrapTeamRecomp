@@ -537,6 +537,16 @@ SettingsPage ExtrasPage() {
        "Trap Master haben ihren Traptanium-Boost immer: Ihre Waffe leuchtet und w\xC3\xA4" "chst, und "
        "ihre Treffer machen 1,5-mal so viel Schaden, nicht nur in den K\xC3\xA4mpfen, in denen das "
        "Spiel ihn einschaltet."}));
+  // CoL #48, #20: src/hooks/attribute_cheats_hook.cpp, the On Hurt script's crit and zone checks.
+  page.settings.push_back(skylanders::CheatSetting(
+      {"cheat_always_crit", "Always crit", "Immer kritisch",
+       "Every hit of your Skylanders is a critical hit.",
+       "Jeder Treffer deiner Skylander ist ein kritischer Treffer."}));
+  page.settings.push_back(skylanders::CheatSetting(
+      {"cheat_elemental_power", "Elemental power everywhere", "Elementarkraft \xC3\xBC" "berall",
+       "Your Skylanders get their element's bonus in every area, as if each area were theirs.",
+       "Deine Skylander bekommen den Bonus ihres Elements in jedem Gebiet, als w\xC3\xA4re jedes "
+       "Gebiet ihres."}));
   // #18: src/hooks/script_cheats_hook.cpp skips the script's per-second drain; hits still count.
   page.settings.push_back(skylanders::CheatSetting(
       {"cheat_villain_time_hits_only", "Villain time only drops on hits", "Schurkenzeit sinkt nur bei Treffern",
