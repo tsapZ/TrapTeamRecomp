@@ -250,3 +250,15 @@ registers = ["r11"]
 0x827197FC = {}
 0x827198DC = {}
 0x827D065C = {}
+
+# 0x824A3B9C is in the game's movie update (sub_824A3998): it compares the HBINK's (r31) FrameNum
+# (+12) with its Frames (+8) (subf + cntlzw) and ends the movie when they are equal, else calls
+# BinkNextFrame. Found with debug/bink_frame_check.py (the FrameNum and Frames loads and their
+# compare, next to Bink calls; the other match is inside Bink's own BinkNextFrame).
+# src/hooks/intro_skip_hook.cpp sets Frames to FrameNum when a movie_skip_buttons button was
+# pressed while this movie plays (skylanders-portal movie_skip.h), so the game ends the movie its
+# own way, as if it had played out; without a press it changes nothing.
+[[midasm_hook]]
+address = 0x824A3B9C
+name = "MovieEndCheckHook"
+registers = ["r31"]
