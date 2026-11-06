@@ -1,5 +1,5 @@
 #define MyAppName "Trap Team Recompiled"
-#define MyAppVersion "0.4.2-beta.6"
+#define MyAppVersion "0.4.2-beta.7"
 #define MyAppExeName "trapteamrecompiled.exe"
 
 [Setup]
