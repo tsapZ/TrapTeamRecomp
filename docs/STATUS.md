@@ -700,3 +700,7 @@ launcher's achievements screen.
 ## 2026-11-06: gold and XP multipliers
 
 - Extras: gold and XP multipliers (x2 to x10, the rows from skylanders-portal, behind Show cheats; CoL #48). Trap Team pays out both in script macros (heap snapshot of Level_302): "Player - Minion - Award Money" reads the player's money into val, then `amount = val + amount` (capped at 65000 by the game) and saves it; "Player - Minion - Award Experience" takes `amount = exp value * amount` and adds it. The scripts' addition sub_82287DB0 and multiplication sub_822883B0 are built as the subtraction (the expression in r30, three paths by the values' types); src/hooks/multiplier_cheats_hook.cpp hooks all six, tells the two expressions by their names (the right side the macro's own parameter "amount", its macro +0x38; the left side "val" / "exp value", so the macro's statistics additions of amount stay as they are), keeps each answer in a direct-mapped table and scales the right value when it is positive. Developer kit at x10: Level_302's fight 'XP ... (1 -> 10)', a sweep of Level_300 and Level_305 'gold ... (1 -> 10)'; hub A/B at scale 2, 3 pairs: on 122.4, off 122.3, the pairs split, no frame over 50 ms.
+
+## 2026-11-06: 0.4.2-beta.8
+
+- The setup's version for what came since the last one: Trap Team: gold and XP multipliers as cheats
