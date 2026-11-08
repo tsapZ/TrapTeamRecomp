@@ -113,10 +113,10 @@ The settings menu shows the keyboard keys for the game itself under Controls.
 
 ## How far it is
 
-Chapter 1 and the Skylanders Academy play, with traps, the villain vault and swapping villains in.
-Nobody has played the whole game to the end yet. If something breaks further in, please
-[tell me](https://github.com/tsapZ/TrapTeamRecomp/issues/new/choose).
-
+Chapter 1 and the Skylanders Academy play, with traps, the villain vault and swapping villains in,
+and in automated test runs all 26 story levels load without a crash. Nobody has played the whole
+game to the end yet. If something breaks further in, please [tell
+me](https://github.com/tsapZ/TrapTeamRecomp/issues/new/choose).
 What's being worked on: [docs/roadmap.md](docs/roadmap.md). Known bugs and the details:
 [docs/STATUS.md](docs/STATUS.md).
 
