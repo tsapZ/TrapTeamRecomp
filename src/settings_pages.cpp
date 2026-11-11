@@ -412,15 +412,22 @@ SettingsPage PortalPage() {
   page.settings.push_back(
       {"portal_audio", "Portal speaker", "Portal-Lautsprecher",
        "Trapped villains talk through the portal's speaker.\n"
-       "With the menu (no portal): on the PC's speakers.\n"
-       "With a real portal: on the portal itself.",
+       "On: with the menu or Automatic on the PC's speakers, with Real USB portal only on "
+       "the portal itself.\n"
+       "PC speakers: always on the PC, also with Real USB portal only.\n"
+       "Off: silent.",
        "Gefangene Schurken sprechen \xC3\xBC" "ber den Lautsprecher des Portals.\n"
-       "Mit dem Men\xC3\xBC (ohne Portal): aus den Lautsprechern des PCs.\n"
-       "Mit einem echten Portal: aus dem Portal selbst.",
-       {{"auto", "On", "An"}, {"off", "Off", "Aus"}}});
+       "An: mit dem Men\xC3\xBC oder Automatisch aus den Lautsprechern des PCs, mit "
+       "Nur echtes USB-Portal aus dem Portal selbst.\n"
+       "PC-Lautsprecher: immer aus dem PC, auch mit Nur echtes USB-Portal.\n"
+       "Aus: stumm.",
+       {{"auto", "On", "An"}, {"pc", "PC speakers", "PC-Lautsprecher"}, {"off", "Off", "Aus"}}});
   Setting speaker_volume{"portal_speaker_volume", "Portal speaker volume", "Lautst\xC3\xA4rke des Portals",
-                         "How loud the portal speaker plays on the PC.",
-                         "Wie laut der Portal-Lautsprecher am PC spielt.",
+                         "How loud the portal speaker plays: on the PC's speakers, and on a real "
+                         "PS3/Wii U portal's own speaker (lower it if the portal's sound distorts).",
+                         "Wie laut der Portal-Lautsprecher spielt: aus den Lautsprechern des PCs und "
+                         "aus dem Lautsprecher eines echten PS3-/Wii-U-Portals (leiser stellen, wenn "
+                         "das Portal verzerrt klingt).",
                          {{"1", "100 %", "100 %"}, {"0.75", "75 %", "75 %"}, {"0.5", "50 %", "50 %"},
                           {"0.25", "25 %", "25 %"}}};
   speaker_volume.restart = true;  // the PC's speaker stream takes it when the portal is made
