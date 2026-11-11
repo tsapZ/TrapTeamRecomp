@@ -305,10 +305,12 @@ SettingsPage FrameRatePage() {
   page.settings.push_back({"vsync", "VSync", "VSync",
                            "Waits for the screen before showing a frame.\n"
                            "On: the picture never tears in two when the camera moves.\n"
-                           "Off: reacts a tiny bit faster but may tear.",
+                           "Off: reacts a tiny bit faster but may tear; with a FreeSync or G-Sync screen it follows "
+                           "the game's frame rate instead.",
                            "Wartet vor jedem Bild auf den Bildschirm.\n"
                            "An: Das Bild rei\xC3\x9Ft bei Kamerabewegungen nie in zwei Teile.\n"
-                           "Aus: reagiert minimal schneller, kann aber rei\xC3\x9F" "en."});
+                           "Aus: reagiert minimal schneller, kann aber rei\xC3\x9F" "en; mit einem FreeSync- "
+                           "oder G-Sync-Bildschirm folgt er dann der Bildrate des Spiels."});
   page.settings.push_back(
       {"render_target_path_d3d12", "Render path", "Renderpfad",
        "How the Xbox 360's graphics memory is emulated.\n"
@@ -423,13 +425,13 @@ SettingsPage PortalPage() {
   page.settings.push_back(
       {"portal_audio", "Portal speaker", "Portal-Lautsprecher",
        "Trapped villains talk through the portal's speaker.\n"
-       "On: with the menu or Automatic on the PC's speakers, with Real USB portal only on "
-       "the portal itself.\n"
+       "On: on your real portal's own speaker when it has one (Real USB portal only, or "
+       "Automatic with a Trap Team portal), else on the PC's speakers.\n"
        "PC speakers: always on the PC, also with Real USB portal only.\n"
        "Off: silent.",
        "Gefangene Schurken sprechen \xC3\xBC" "ber den Lautsprecher des Portals.\n"
-       "An: mit dem Men\xC3\xBC oder Automatisch aus den Lautsprechern des PCs, mit "
-       "Nur echtes USB-Portal aus dem Portal selbst.\n"
+       "An: aus dem Lautsprecher deines echten Portals, wenn es einen hat (Nur echtes USB-Portal "
+       "oder Automatisch mit einem Trap-Team-Portal), sonst aus den Lautsprechern des PCs.\n"
        "PC-Lautsprecher: immer aus dem PC, auch mit Nur echtes USB-Portal.\n"
        "Aus: stumm.",
        {{"auto", "On", "An"}, {"pc", "PC speakers", "PC-Lautsprecher"}, {"off", "Off", "Aus"}}});
