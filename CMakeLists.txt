@@ -64,6 +64,7 @@ set(TRAPTEAMRECOMP_SOURCES
     src/settings_pages.cpp
     src/hooks/attribute_cheats_hook.cpp
     src/hooks/figure_intro_hook.cpp
+    src/hooks/frame_time_hook.cpp
     src/hooks/fxaa_scale_hook.cpp
     src/hooks/intro_skip_hook.cpp
     src/hooks/multiplier_cheats_hook.cpp

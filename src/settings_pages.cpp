@@ -284,21 +284,26 @@ SettingsPage FrameRatePage() {
   SettingsPage page{"Frame rate", "Bildrate", {}};
   // The game swaps with presentation interval 1 already; its 30 FPS come from the emulated vblank,
   // which the SDK runs at 30 Hz without a limit and at the limit's rate with one (measured in
-  // Chapter 1, 2026-10-21: 59.6 FPS with 60, 96-110 with 144). The figure walks as far in 2 s of
-  // stick at 30, 60 and up to 120 FPS, but above 120 the whole game runs faster (TrapTeamRecomp #25,
-  // 2026-11-11: 1.3 to 1.4 times at 143 to 170 FPS), so the choices stop at 120 for now (the app caps
-  // a settings file's higher value too). docs/STATUS.md.
+  // Chapter 1, 2026-10-21: 59.6 FPS with 60, 96-110 with 144). The game counts every frame as at
+  // least 1/120 s, so above 120 FPS it ran too fast (TrapTeamRecomp #25); src/hooks/frame_time_hook.cpp
+  // moves that bound with the limit: the Skylander walks as far in 2 s of stick at 170 FPS as at 30
+  // and 60 (2026-11-12). A figure's arrival finishes about a second sooner (it loads the figure).
+  // docs/STATUS.md.
   page.settings.push_back(
       {"frame_rate_limit", "Frame rate", "Bildrate",
-       "The game was made for 30 FPS and keeps its normal speed up to 120. Above that it would run "
-       "too fast, so 120 is the most for now.\n"
-       "Best: 120 if your PC reaches it, else 60.",
-       "Das Spiel ist f\xC3\xBCr 30 FPS gemacht und l\xC3\xA4uft bis 120 FPS normal schnell. Dar\xC3\xBC" "ber "
-       "w\xC3\xA4re es zu schnell, deshalb ist 120 vorerst das Maximum.\n"
-       "Am besten: 120, wenn dein PC das schafft, sonst 60.",
+       "The game was made for 30 FPS and keeps its normal speed at higher rates.\n"
+       "Best: your screen's refresh rate. If your PC can't reach it, the game simply runs as "
+       "fast as it can.",
+       "Das Spiel ist f\xC3\xBCr 30 FPS gemacht und l\xC3\xA4uft auch mit mehr FPS normal schnell.\n"
+       "Am besten: die Bildwiederholrate deines Bildschirms. Schafft dein PC das nicht, l\xC3\xA4uft "
+       "das Spiel einfach so schnell, wie er kann.",
        {{"30", "30 (as on the console)", "30 (wie auf der Konsole)"},
         {"60", "60", "60"},
-        {"120", "120", "120"}}});
+        {"120", "120", "120"},
+        {"144", "144", "144"},
+        {"165", "165", "165"},
+        {"200", "200", "200"},
+        {"240", "240", "240"}}});
   page.settings.push_back({"vsync", "VSync", "VSync",
                            "Waits for the screen before showing a frame.\n"
                            "On: the picture never tears in two when the camera moves.\n"

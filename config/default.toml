@@ -42,6 +42,18 @@ registers = ["r1"]
 # moment's waits ("mmsky4 - show minion - update": time > mm seq data.timer) once the intro ran
 # figure_intro_seconds (src/hooks/figure_intro_hook.cpp), all off by default; r3 is read only by
 # the compare right after.
+# 0x82291174 (fcmpu cr6,f0,f13) is in sub_82291130, which makes the frame time the game's update takes
+# (the global float at 0x82898BCC): the measured time kept between 0.5 and 3.0 times the nominal frame
+# time f11 (1/60 s; f13 = the lower bound, compared here). Above 120 FPS every frame still counted 1/120
+# s and the game ran too fast (TrapTeamRecomp #25). Found 2026-11-12 with a write watch on that global
+# at 168 FPS (writers sub_82291130 and its caller sub_821E9788). src/hooks/frame_time_hook.cpp lowers
+# f13 in step with frame_rate_limit above 120 (one frame at the limit); up to 120 the game's own bound
+# stays. f13 is read only by this compare and the store of the bound right after.
+[[midasm_hook]]
+address = 0x82291174
+name = "FrameTimeFloorHook"
+registers = ["f11", "f13"]
+
 [[midasm_hook]]
 address = 0x82285CE0
 name = "NightmareCheckHook"
