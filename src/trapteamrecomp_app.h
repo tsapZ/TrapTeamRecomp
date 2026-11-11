@@ -150,9 +150,14 @@ class TrapteamrecompApp : public rex::ReXApp {
     // presses unless this is on.
     SetDefault("guide_button", "true");
     // 60 FPS unless the settings file says otherwise (the owner's wish, 2026-10-21): the game's rate
-    // follows frame_rate_limit, and it keeps its speed at more frames (measured, docs/STATUS.md).
+    // follows frame_rate_limit, and it keeps its speed up to 120 FPS (measured, docs/STATUS.md).
     // "30 as on the console" in the menu is the limit 30, so it stays when chosen.
     SetDefault("frame_rate_limit", "60");
+    // Above 120 FPS the whole game runs faster: at 165 FPS about 1.4 times (TrapTeamRecomp #25;
+    // measured 2026-11-11 in the Academy: 2 s of stick moved Enigma 15.2 units at 30 and 60 FPS,
+    // 19.5 to 21 at 143 to 170 FPS). Until the cause is found, a settings file asking for more gets
+    // 120; the menu offers no more. The command line keeps its value (uncapped performance runs).
+    CapFrameRateForSpeed();
     // The final picture sharpened (the menu's "Quality" preset) unless the settings file
     // or the command line sets present_effect (the owner asked for the best picture by default,
     // 2026-10-21). resolution_scale, the preset's other half, belongs to the GPU plugin, which
@@ -373,6 +378,19 @@ class TrapteamrecompApp : public rex::ReXApp {
   static void SetDefault(std::string_view name, std::string_view value) {
     if (!rex::cvar::HasNonDefaultValue(name) && !rex::cvar::SetFlagByName(name, value)) {
       REXLOG_WARN("Could not set {} to {}", name, value);
+    }
+  }
+
+  // frame_rate_limit above 120 (from the settings file, not the command line) becomes 120: the game
+  // runs too fast above it (TrapTeamRecomp #25, see OnPreSetup).
+  static void CapFrameRateForSpeed() {
+    constexpr long kMaxKeepingSpeed = 120;
+    const std::string value = rex::cvar::GetFlagByName("frame_rate_limit");
+    if (rex::cvar::GetFlagSource("frame_rate_limit") == rex::cvar::Source::kCommandLine) return;
+    if (std::strtol(value.c_str(), nullptr, 10) <= kMaxKeepingSpeed) return;
+    if (rex::cvar::SetFlagByName("frame_rate_limit", std::to_string(kMaxKeepingSpeed))) {
+      REXLOG_INFO("Frame rate: {} asked for, {} used (above it the game runs too fast, TrapTeamRecomp #25)",
+                  value, kMaxKeepingSpeed);
     }
   }
 
