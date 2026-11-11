@@ -164,6 +164,15 @@ class TrapteamrecompApp : public rex::ReXApp {
     // pictures (2026-11-09). The SDK's switch (Xenia Canary's draw_resolution_scale_threshold,
     // D3D12 only); only when nothing set it.
     SetDefaultIfUnset("draw_resolution_scale_threshold", "640");
+    // Native surfaces: the SDK leaves a render target's pixels where the game drew them instead of
+    // copying them through its EDRAM model each time another target takes the same EDRAM, except
+    // the copies this game needs (gpu_native_surfaces_keep, in gpu_transfer_report's names).
+    // Trap Team reads depth as colour as Swap Force does (same engine; their fog and sky need it), so
+    // the depth -> colour kinds stay; the colour -> depth and colour -> colour ones go. In the hub at
+    // 2x, uncapped: 146.0 -> 157.2 FPS (+7.7 %); a story sweep of every level and pictures at a fixed
+    // spot looked the same as without (2026-11-10). Both only when nothing set them.
+    SetDefaultIfUnset("gpu_native_surfaces", "true");
+    SetDefaultIfUnset("gpu_native_surfaces_keep", "D0x1->C0x1,D1x1->C14x1,D0x1->C14x1,D1x1->C0x1");
     // The games whose figures this one reads (later games' figures it doesn't know).
     SetDefault("portal_menu_games", "Spyro's Adventure;Giants;Swap Force;Trap Team");
     // For the launcher (Core of Light): the settings menu's pages with their values as a file,
