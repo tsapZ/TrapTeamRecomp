@@ -157,6 +157,12 @@ class TrapteamrecompApp : public rex::ReXApp {
     // Dithering the 10-bit picture to the window's 8 bits, against bands in skies and fog (F4 >
     // Grafik, the dithering row): noise too fine to see, nothing to lose.
     SetDefaultIfUnset("present_dither", "true");
+    // The 1x copies of draw_resolution_scale_threshold (bloom, blur, depth of field) are also
+    // written into their unscaled textures, so those skip the reload from the console's memory.
+    // Uncapped, off -> on at 2x 153.8 -> 155.2 FPS (+0.9 %, medians +1.0 %) (2026-11-11, three rounds each); story
+    // sweeps of every level with it gave alike pictures. The SDK's switch (D3D12 only); only
+    // when nothing set it.
+    SetDefaultIfUnset("gpu_native_resolves_unscaled", "true");
     // Render targets up to 640 pixels wide (the console's half and quarter size bloom, blur and
     // depth of field passes) stay at the console's size while the rest is scaled up: they are
     // blurred by design, so the picture looks the same, and they cost a quarter at 2x. In the hub
