@@ -67,7 +67,7 @@ one to take off, Continue takes them off. See [portal.md](portal.md#portal-check
   gradients (`present_dither`, on), texture filtering (`anisotropic_override`), HD textures on or off (`hd_textures`, with a pack installed), the game's own
   edge smoothing kept sharp (`fxaa_follow_resolution_scale`), extra edge smoothing
   (`swap_post_effect`), glow (`bloom_strength`), motion blur (`motion_blur_strength`),
-  fullscreen, window size.
+  fullscreen, the screen it opens on (`monitor`), window size.
 - **Frame rate:** the frame rate (`frame_rate_limit`: 30 as on the console, 60 by default, more;
   this game already presents every frame, so the limit alone sets it), VSync, render path,
   graphics card, graphics interface (D3D12 or Vulkan).
