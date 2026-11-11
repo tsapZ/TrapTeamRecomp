@@ -768,3 +768,7 @@ launcher's achievements screen.
 ## 2026-11-11: 0.5.0-beta.5
 
 - The setup's version for what came since the last one: more FPS where the graphics card is the limit (small render targets at 1x, direct resolves, lazy copies, native surfaces), the native 3D picture and Automatic sharpening (FSR 1 when enlarging) by default, As on the console in the presets (Core of Light #72), the Monitor row (#75), older portals light up, quicker swaps and the menu lock with a real portal (TrapTeamRecomp #22), Nederlands (#68), Portal speaker: PC speakers (#67).
+
+## 2026-11-11: shorter Skylander intro
+
+- **Skylander intro: Short** (F4 > Game, `figure_intro_seconds` 1.5, off by default; Core of Light #65, as in Swap Force, SuperChargers and Imaginators): the magic moment ends 1.5 s in and the jump into the level follows. The magic moment is a script here ("mmsky4 - show minion - update"): stages that each wait for `time > mm seq data.timer` before the portal UI's mode complete; the scripts' check-value hook (0x82285CE0, src/hooks/figure_intro_hook.cpp) lets those waits come out true once the magic moment ran that long. Measured in the Academy with Chop Chop put on (dev kit, cur mode every quarter second): playable 6.75 s after the placement as in the game, 3.75 s with Short; a trap put on (Chef Pepper Jack's magic moment, the same macro) 7.75 s and 4.5 s. The jump keeps its 1.5 s; the HUD, walking and attacking as usual.

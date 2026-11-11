@@ -38,8 +38,10 @@ registers = ["r1"]
 # functions. src/hooks/nightmare_hook.cpp sets r3 to 1 for that one check when
 # nightmare_from_start is on, and for the cheats the Guardian Crystal master switch checks
 # (cheat_traptanium_boost) and "On Hurt - Player On Hurt"'s crit and elemental zone checks
-# (src/hooks/attribute_cheats_hook.cpp: cheat_always_crit, cheat_elemental_power), all off by
-# default; r3 is read only by the compare right after.
+# (src/hooks/attribute_cheats_hook.cpp: cheat_always_crit, cheat_elemental_power), and the magic
+# moment's waits ("mmsky4 - show minion - update": time > mm seq data.timer) once the intro ran
+# figure_intro_seconds (src/hooks/figure_intro_hook.cpp), all off by default; r3 is read only by
+# the compare right after.
 [[midasm_hook]]
 address = 0x82285CE0
 name = "NightmareCheckHook"

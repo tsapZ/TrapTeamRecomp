@@ -39,6 +39,7 @@
 #include <rex/system/kernel_state.h>
 
 #include "attribute_cheats_hook.h"
+#include "figure_intro_hook.h"
 #include "script_objects.h"
 
 REXCVAR_DEFINE_BOOL(nightmare_from_start, false, "Game",
@@ -110,8 +111,10 @@ void NightmareCheckHook(PPCRegister& r3, PPCRegister& r31) {
   const bool nightmare_on = REXCVAR_GET(nightmare_from_start);
   const bool boost_on = REXCVAR_GET(cheat_traptanium_boost);
   const bool attribute_on = trapteamrecomp::attribute_cheats::AnyOn();
+  // figure_intro_hook.cpp: the magic moment's waits, true or false (it times the magic moment).
+  const bool intro_on = trapteamrecomp::figure_intro::On();
   // Nightmare only needs the checks that came out false; the boost's == 0 check comes out true.
-  if (!(nightmare_on && r3.s32 < 1) && !boost_on && !attribute_on) return;
+  if (!(nightmare_on && r3.s32 < 1) && !boost_on && !attribute_on && !intro_on) return;
   uint8_t* base = rex::system::kernel_state()->memory()->virtual_membase();
   // Every check that comes out false passes here, many a frame, and the walk to the names asks
   // the memory's protection a dozen times (system calls): with the option on, the game slowed down
@@ -121,8 +124,9 @@ void NightmareCheckHook(PPCRegister& r3, PPCRegister& r31) {
   // it is on (`known` bits), so an option that is off costs nothing.
   struct Seen {
     uint64_t sides;
-    uint8_t known;  // 1 nightmare, 2 master_switch, 4 attribute
+    uint8_t known;  // 1 nightmare, 2 master_switch, 4 attribute, 8 intro
     bool nightmare;
+    bool intro;  // figure_intro::IsIntroWait
     uint32_t master_switch;  // MasterSwitchCheckOperator
     trapteamrecomp::attribute_cheats::Kind attribute;
   };
@@ -133,10 +137,18 @@ void NightmareCheckHook(PPCRegister& r3, PPCRegister& r31) {
   auto it = seen.find(op);
   if (it == seen.end() || it->second.sides != sides) {
     if (seen.size() > 65536) seen.clear();
-    it = seen.insert_or_assign(op, Seen{sides, 0, false, 0, trapteamrecomp::attribute_cheats::Kind::kNone})
+    it = seen.insert_or_assign(op, Seen{sides, 0, false, false, 0, trapteamrecomp::attribute_cheats::Kind::kNone})
              .first;
   }
   Seen& entry = it->second;
+  if (intro_on && !(entry.known & 8)) {
+    entry.intro = trapteamrecomp::figure_intro::IsIntroWait(base, op);
+    entry.known |= 8;
+  }
+  if (intro_on && entry.intro) {
+    trapteamrecomp::figure_intro::Apply(r3);
+    return;
+  }
   if (nightmare_on && r3.s32 < 1 && !(entry.known & 1)) {
     entry.nightmare = IsNightmareCheck(base, op);
     entry.known |= 1;
