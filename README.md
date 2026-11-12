@@ -119,6 +119,18 @@ Chapter 1 and the Skylanders Academy play, with traps, the villain vault and swa
 and in automated test runs all 26 story levels load without a crash. Nobody has played the whole
 game to the end yet. If something breaks further in, please [tell
 me](https://github.com/tsapZ/TrapTeamRecomp/issues/new/choose).
+
+**What's tested** (as of 2026-11-12):
+
+| | |
+|---|---|
+| Every story level loads | all 26, by script |
+| Played by hand | with a real portal (below); Chapter 1 by script |
+| Real USB portal | an older portal from before Trap Team: the light, quick swaps, and the message to lift a figure off |
+| Traps | the trap slot and the villain's voice with the built-in portal, by script; a player's Xbox 360 Traptanium portal |
+| Two players | player 2 joins, by script |
+| Graphics | D3D12 and Vulkan, by script |
+
 What's being worked on, for all six games and the launcher: the [roadmap
 board](https://github.com/users/tsapZ/projects/1), and [docs/roadmap.md](docs/roadmap.md) for this
 game. Questions and ideas: [Discussions](https://github.com/tsapZ/SkylandersCoreOfLight/discussions). Known bugs and the details:

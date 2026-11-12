@@ -778,3 +778,10 @@ launcher's achievements screen.
 - **Measured** (debug route tt_speed_check: the owner's save, Enigma in the Academy, 2 s of stick forward between two kit pos lines, dev kit, resolution scale 1, VSync off): 15.1 to 15.2 units at 30 and 60 FPS, 19.5 to 21.0 at 143 to 170 FPS (1.29 to 1.38 times; MythicFunkable saw 1.375 at 165). Giants, Swap Force and Imaginators walk as far at 130 to 200 FPS as at 60. The 2026-10-21 check at 144 ran at 96 to 110 FPS and so stayed below 120.
 - **The cause:** sub_82291130 makes the frame time the game's update takes (the global float 0x82898BCC; its caller sub_821E9788 writes it too): the measured time of the frame kept between 0.5 and 3.0 (the floats at 0x820EB298 / 0x820EB29C) times the nominal frame time of 1/60 s, so every frame counted at least 1/120 s. Found with scans at 168 FPS (the float 1/120 as 3C08888A in many objects and on the main thread's stack; not the exact 3C088889, which is only a sine coefficient at 8207E8F8) and a write watch on the global. The actors' own frame timers (sub_823E3AD0, no lower bound) carry the real time.
 - **The fix** (src/hooks/frame_time_hook.cpp, midasm hook 0x82291174 on the compare with the lower bound): above 120 FPS the bound becomes one frame at frame_rate_limit, up to 120 the game's own stays; the 0.5 is left alone (other code loads it). The Skylander walks 15.14 to 15.37 units at 60, 116 and 153 to 172 FPS (2026-11-12).
+
+## 2026-11-12: what's tested, for the README
+
+The README's "What's tested" table (bundle/next4). Story sweep with the developer kit the night before: all 26 story
+levels loaded, none failed, pictures alike to the night before. Smoke (the save route and the menus) on D3D12 and on
+Vulkan with the SDK's native-surfaces fix (Core of Light #76): both ok. The owner's portal test of 2026-11-11 with an older (pre-Trap Team) portal: it lights up, quick swaps are picked up, a real toy's card says it's on the real portal, and choosing another Skylander asks to lift it off. The other rows come from the entries
+above and docs/roadmap.md.
