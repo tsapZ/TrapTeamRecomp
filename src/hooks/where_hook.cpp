@@ -22,6 +22,7 @@
 #include "hooks/where_hook.h"
 
 #include <cctype>
+#include <charconv>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -39,6 +40,7 @@
 #include <rex/system/xmemory.h>
 
 #include "dev/where.h"
+#include "portal_rex/soul_gems.h"
 
 namespace {
 
@@ -84,6 +86,18 @@ std::string LevelOfArchive(std::string_view path) {
   return it != g_spelling.end() ? it->second : name;
 }
 
+// The Soul Gem movies (skylanders-portal soul_gems.h): movies\soulGem_<toy id>.mov, one per
+// Skylander of this game (450 Gusto ... 485 Blackout).
+std::string SoulGemOf(std::string_view path) {
+  const std::string_view id = skylanders::AfterPrefix(skylanders::FileStem(path, ".mov"), "soulGem_");
+  if (id.empty()) return {};
+  uint16_t toy = 0;
+  const auto [end, error] = std::from_chars(id.data(), id.data() + id.size(), toy);
+  if (error != std::errc() || end != id.data() + id.size()) return {};
+  const std::string name = skylanders::SkylanderWithId(toy);
+  return name.empty() ? "toy " + std::string(id) : name;
+}
+
 }  // namespace
 
 namespace trapteamrecomp {
@@ -97,6 +111,7 @@ void InstallWhere(const std::filesystem::path& game_data_root) {
     }
   }
   skylanders::dev::WatchLevelArchives(&LevelOfArchive);
+  skylanders::WatchSoulGems(&SoulGemOf);
 }
 
 }  // namespace trapteamrecomp
