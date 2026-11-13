@@ -2,22 +2,24 @@
 
 #include <filesystem>
 #include <string>
+#include <vector>
 
 namespace trapteamrecomp {
 
-// The game's data folder (rom): which of the languages taken from the console's country (Dutch and
-// the Nordic four) the disc has is seen from its text files. Call before ApplyLanguageSetting and
-// before the settings menu is built.
+// The game's data folder (rom): its alchemy.xml names the disc's SKU, which decides the languages the game
+// offers (localization.cpp). Call before ApplyLanguageSetting and before the settings menu is built.
 void SetDiscRoot(const std::filesystem::path& root);
 
-// Whether the disc has one of the languages taken from the console's country ("dutch", "swedish",
-// "norwegian", "danish", "finnish"): its text file (item\3d_font_msg_<language>.bld). False for any
-// other name; true for these while no data folder is set.
-bool DiscHasCountryLanguage(const std::string& name);
+// The languages this disc offers, as the language setting names them ("english", "german", "swedish", ...), the
+// disc's default first.
+const std::vector<std::string>& DiscLanguages();
 
-// Resolves the `language` cvar (a friendly name, or a raw numeric Xbox 360 language ID for
-// experimentation) and applies it to the `user_language` cvar that XGetLanguage/
-// ExGetXConfigSetting actually read. Call once at startup, before the game can query either.
+// A language's name in itself for the settings menu ("Deutsch", "Svenska", ...), UTF-8.
+const char* LanguageLabel(const std::string& name);
+
+// Resolves the `language` cvar (one the disc offers, "auto", or a raw numeric Xbox 360 language ID for
+// experimentation) and applies it to `user_language` (XGetLanguage) and, where the disc picks the language by
+// the console's locale, `user_country` (XGetLocale). Call once at startup, before the game can query either.
 void ApplyLanguageSetting();
 
 }  // namespace trapteamrecomp

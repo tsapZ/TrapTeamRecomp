@@ -349,27 +349,18 @@ SettingsPage FrameRatePage() {
 
 SettingsPage GamePage() {
   SettingsPage page{"Game", "Spiel", {}};
-  // The five languages of src/localization.cpp, set through user_language; unlike Giants this
-  // game needs no region hook (its German title screen, checked 2026-10-23).
-  // "auto" follows the Windows display language if it is one of them, else English.
+  // The languages the disc's SKU offers (src/localization.cpp: the European disc EU1 has English and
+  // German, a Nordic one the Nordic four, ...); "auto" follows the Windows display language if the disc
+  // offers it, else the disc's own.
   Setting language{"language", "Language", "Sprache",
-                   "Text and voices.\n"
-                   "Automatic: the language of Windows, if the game has it.",
-                   "Texte und Stimmen.\n"
-                   "Automatisch: die Sprache von Windows, wenn das Spiel sie hat.",
-                   {{"auto", "Automatic", "Automatisch"},
-                    {"english", "English", "English"},
-                    {"german", "Deutsch", "Deutsch"},
-                    {"french", "Fran\xC3\xA7" "ais", "Fran\xC3\xA7" "ais"},
-                    {"spanish", "Espa\xC3\xB1ol", "Espa\xC3\xB1ol"},
-                    {"italian", "Italiano", "Italiano"}}};
-  // Dutch (CoL #68) and the Nordic four (SSA #47) through the country, not a language id, and only
-  // when the disc has them (localization.cpp).
-  static const std::pair<const char*, const char*> kByCountry[] = {
-      {"dutch", "Nederlands"}, {"swedish", "Svenska"}, {"norwegian", "Norsk"},
-      {"danish", "Dansk"},     {"finnish", "Suomi"}};
-  for (const auto& [name, label] : kByCountry) {
-    if (trapteamrecomp::DiscHasCountryLanguage(name)) language.options.push_back({name, label, label});
+                   "Text and voices: the ones your disc has.\n"
+                   "Automatic: the language of Windows, if the disc has it.",
+                   "Texte und Stimmen: die deiner Disc.\n"
+                   "Automatisch: die Sprache von Windows, wenn die Disc sie hat.",
+                   {{"auto", "Automatic", "Automatisch"}}};
+  for (const std::string& name : trapteamrecomp::DiscLanguages()) {
+    const char* label = trapteamrecomp::LanguageLabel(name);
+    language.options.push_back({name, label, label});
   }
   language.restart = true;
   page.settings.push_back(language);
