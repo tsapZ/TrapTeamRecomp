@@ -21,8 +21,8 @@ REXCVAR_DECLARE(uint32_t, user_country);
 REXCVAR_DEFINE_STRING(language, "auto", "Game",
                       "Game text/voice language: auto (the Windows display language if it is one "
                       "of the following, else English), english, french, german, spanish, "
-                      "italian, dutch, swedish, norwegian, danish, finnish. A raw Xbox 360 language ID (a number) also works, for languages "
-                      "the disc supports that aren't confirmed here yet.");
+                      "italian, and dutch, swedish, norwegian, danish, finnish when the disc has "
+                      "them. A raw Xbox 360 language ID (a number) also works, for experiments.");
 
 namespace trapteamrecomp {
 
@@ -33,6 +33,23 @@ std::string Lower(std::string s) {
                  [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
   return s;
 }
+
+// Dutch and the Nordic four aren't Xbox 360 language ids: the Skylanders games take them from the
+// console's country with the language English, as Spyro's Adventure does (Dutch: CoL #68, checked
+// there 2026-11-09; Swedish: SSA #47, checked there 2026-11-12). The countries are XC_COUNTRY ids
+// (the SDK's xam_locale.cpp table).
+const std::unordered_map<std::string, uint32_t>& CountryLanguages() {
+  static const std::unordered_map<std::string, uint32_t> kLanguages = {
+      {"dutch", 74u},      // XC_COUNTRY_NL
+      {"swedish", 90u},    // XC_COUNTRY_SE
+      {"norwegian", 75u},  // XC_COUNTRY_NO
+      {"danish", 25u},     // XC_COUNTRY_DK
+      {"finnish", 32u},    // XC_COUNTRY_FI
+  };
+  return kLanguages;
+}
+
+std::filesystem::path g_disc_root;
 
 // The Windows display language as one of the names below; English for any other.
 std::string SystemLanguage() {
@@ -65,6 +82,15 @@ std::string SystemLanguage() {
 
 }  // namespace
 
+void SetDiscRoot(const std::filesystem::path& root) { g_disc_root = root; }
+
+bool DiscHasCountryLanguage(const std::string& name) {
+  if (!CountryLanguages().count(name)) return false;
+  if (g_disc_root.empty()) return true;
+  std::error_code ec;
+  return std::filesystem::is_regular_file(g_disc_root / "item" / ("3d_font_msg_" + name + ".bld"), ec);
+}
+
 void ApplyLanguageSetting() {
   // A direct --user_language / user_language=<n> override (raw, for experimentation) always
   // wins: don't clobber it with whatever `language` defaults to (a real bug this had until now --
@@ -76,7 +102,8 @@ void ApplyLanguageSetting() {
   }
 
   // Xbox 360 XLanguage IDs (include/rex/system/xcontent.h): the five of the other Skylanders
-  // ports. Which of them this disc has is still to be checked (docs/game/trapteam.md).
+  // ports. The European disc has the text of all five (item\3d_font_msg_<language>.bld), besides
+  // Dutch, the Nordic four (CountryLanguages above), Brazilian and Mexican.
   static const std::unordered_map<std::string, uint32_t> kNames = {
       {"english", 1}, {"german", 3}, {"french", 4}, {"spanish", 5}, {"italian", 6},
   };
@@ -86,20 +113,17 @@ void ApplyLanguageSetting() {
     setting = SystemLanguage();
     REXLOG_INFO("Language: auto, from the Windows display language");
   }
-  // Dutch isn't an Xbox 360 language id: the Skylanders games take Dutch from the console's country
-  // (language English, country the Netherlands), as Spyro's Adventure does (CoL #68, checked there
-  // 2026-11-09). A country set directly (--user_country) stays.
-  // Swedish, Norwegian, Danish and Finnish come the same way (SSA #47): the discs have them, and
-  // the game takes them from the country as it takes Dutch.
-  static const std::unordered_map<std::string, uint32_t> kByCountry = {
-      {"dutch", 74u},      // XC_COUNTRY_NL
-      {"swedish", 90u},    // XC_COUNTRY_SE
-      {"norwegian", 75u},  // XC_COUNTRY_NO
-      {"danish", 25u},     // XC_COUNTRY_DK
-      {"finnish", 32u},    // XC_COUNTRY_FI
-  };
-  if (auto it = kByCountry.find(setting); it != kByCountry.end()) {
+  // Dutch and the Nordic four: English with their country. Only when the disc has the language: a
+  // pressing without its text file stays English, as before these were added (Automatic on a
+  // Finnish Windows, or a settings file from another disc). A country set directly
+  // (--user_country) stays.
+  if (auto it = CountryLanguages().find(setting); it != CountryLanguages().end()) {
     REXCVAR_SET(user_language, 1u);
+    if (!DiscHasCountryLanguage(setting)) {
+      REXLOG_WARN("Language: the disc has no {} (no item/3d_font_msg_{}.bld); using English",
+                  setting, setting);
+      return;
+    }
     if (!rex::cvar::HasNonDefaultValue("user_country")) {
       REXCVAR_SET(user_country, it->second);
     }
