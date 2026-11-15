@@ -1,4 +1,5 @@
 #include "localization.h"
+#include "portal/system_locale.h"
 
 #include <algorithm>
 #include <cctype>
@@ -128,8 +129,13 @@ std::string SystemLanguage() {
     case LANG_SPANISH: return Offered("mexican") ? "mexican" : "spanish";
     default: break;
   }
-#endif
   return "";
+#else
+  std::string lang = skylanders::PosixSystemLanguage();
+  if (lang == "portuguese") lang = "brazilian";
+  else if (lang == "spanish" && Offered("mexican")) lang = "mexican";
+  return Offered(lang) ? lang : "";
+#endif
 }
 
 }  // namespace
