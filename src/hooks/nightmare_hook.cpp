@@ -27,6 +27,8 @@
 // the save keeps its own flag, so with the setting off again Nightmare is locked until the game
 // unlocks it.
 
+#include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <cstring>
 #include <unordered_map>
@@ -51,6 +53,25 @@ REXCVAR_DEFINE_BOOL(nightmare_from_start, false, "Game",
 // Manage" checks that switch against 0. With this on, those checks come out as if it were on.
 // Measured 2026-11-03 in Level_302 with Enigma: his hits on the enemies 30 / 66 / 138 without it,
 // 45 / 99 / 207 with it (1.5 times), and his orb glows white and bigger.
+// The owner's #18 (2026-11-17, as in Spyro's Adventure): talks and cutscenes skippable with the skip
+// button. Trap Team's cutscene update (permanent\global.bld; decoded 2026-11-17 from a heap snapshot
+// of the Academy, kit tt_script_ops.py) handles a skip request (a player's press) with
+//
+//   check [current cutscene.cutscene definition.skippable] == 0       (skip the next 13 ops if false)
+//     check [a developer flag] != 0, then [DEBUG - allow all cutscenes to skip] != 0: skippable
+//     check [current cutscene.cutscene definition.skippable in replays] > 0 and the adventure's
+//       "complete": skippable on a replay
+//     else the request is turned down
+//
+// and a talk's line the same way (`check [dialogue ui.text data.skippable] == 0` jumps past the skip;
+// seen in the Level_302 snapshot, kit tt_checks_named.py). With skip_talks on, a check of a cutscene
+// definition's or a talk line's "skippable" against the literal 0 comes out as if it were 1 (== 0
+// false, > 0 true), so a press skips every scene and line; nothing is skipped without a press, and
+// the scene's own data stays as it is. (The developer switch alone doesn't do: its check only runs
+// behind the flag.)
+REXCVAR_DEFINE_BOOL(skip_talks, false, "Game",
+                    "Every cutscene and talk can be skipped, also those the game only lets you skip "
+                    "on a replay");
 REXCVAR_DEFINE_BOOL(cheat_traptanium_boost, false, "Extras",
                     "Trap Masters' Traptanium boost always on: their weapon glows and grows, and their "
                     "hits do 1.5 times the damage (achievements don't unlock while it's on)");
@@ -84,6 +105,36 @@ bool IsNightmareCheck(uint8_t* base, uint32_t op) {
   return allow && NameIs(base, allow + 0x1C, "allow nightmare");
 }
 
+// A check of a cutscene definition's or a talk line's "skippable" against the literal 0 (skip_talks):
+// its operator (1 ==, 4 >), plus 0x100 for a cutscene's (a talk line's check runs every frame of the
+// talk, a cutscene's after a press), or 0 for any other check.
+uint32_t SkippableCheckOperator(uint8_t* base, uint32_t op) {
+  using rex::memory::load_and_swap;
+  const uint32_t oper = load_and_swap<uint32_t>(base + op + 0x20);  // the op's own fields
+  if (oper != 1 && oper != 4) return 0;
+  const uint32_t rhs = load_and_swap<uint32_t>(base + op + 0x24);
+  const uint32_t literal = rhs ? load_and_swap<uint32_t>(base + rhs + 8) : 0;
+  if (!literal || load_and_swap<uint32_t>(base + literal + 8) != 0 ||
+      load_and_swap<uint32_t>(base + literal + 0x24) != 0) {
+    return 0;
+  }
+  // The path's shape first, by direct reads of what the game has just used (as in Giants d00d79c, where the
+  // name compares on every "== 0" check cost 13-28 FPS): both checks have a path of three variables (type
+  // 821098A0 in the Level_302 snapshot), "current cutscene.cutscene definition.skippable" and
+  // "dialogue ui.text data.skippable". Only those get the name compares (system calls).
+  const uint32_t path = load_and_swap<uint32_t>(base + op + 0x1C);
+  const uint32_t count = path ? load_and_swap<uint32_t>(base + path + 8) : 0;
+  const uint32_t items = path ? load_and_swap<uint32_t>(base + path + 0x14) : 0;
+  if (count != 3 || !items) return 0;
+  const uint32_t owner = load_and_swap<uint32_t>(base + items + 4);
+  const uint32_t last = load_and_swap<uint32_t>(base + items + 8);
+  if (!last || !owner || load_and_swap<uint32_t>(base + last) != 0x821098A0) return 0;
+  if (!NameIs(base, last + 0x1C, "skippable")) return 0;
+  if (NameIs(base, owner + 0x1C, "cutscene definition")) return oper | 0x100;
+  if (NameIs(base, owner + 0x1C, "text data")) return oper;
+  return 0;
+}
+
 // A check of the Guardian Crystal powerup's master switch against the literal 0 ("guardian crystal
 // powerup data ref.master switch"): its operator (1 ==, 4 >), or 0 for any other check.
 uint32_t MasterSwitchCheckOperator(uint8_t* base, uint32_t op) {
@@ -107,14 +158,53 @@ uint32_t MasterSwitchCheckOperator(uint8_t* base, uint32_t op) {
 
 }  // namespace
 
+#if defined(SKYLANDERS_DEVKIT)
+// Dev kit only (2026-11-17, finding the scripts' checks): with --kit_log_checks=true each check op is
+// logged the first time it runs, with its left side's path names, its operator and its result.
+REXCVAR_DEFINE_BOOL(kit_log_checks, false, "Kit", "Log each script check the first time it runs (dev kit)");
+
+namespace {
+void LogCheck(uint8_t* base, uint32_t op, int32_t result) {
+  thread_local std::unordered_map<uint32_t, uint64_t> logged;
+  const uint64_t sides = (uint64_t(rex::memory::load_and_swap<uint32_t>(base + op + 0x1C)) << 32) |
+                         rex::memory::load_and_swap<uint32_t>(base + op + 0x24);
+  if (logged.size() > 100000) return;
+  auto [it, fresh] = logged.try_emplace(op, sides);
+  if (!fresh && it->second == sides) return;
+  it->second = sides;
+  std::string path;
+  for (int i = 0; i < 6; ++i) {
+    const uint32_t item = trapteamrecomp::script::StackItem(base, op + 0x1C, i);
+    if (!item) break;
+    uint32_t name = 0;
+    const uint8_t* text = nullptr;
+    if (ReadU32(base, item + 0x1C, name)) text = trapteamrecomp::script::Readable(base, name & ~1u, 1);
+    path += i ? "." : "";
+    path += text ? std::string(reinterpret_cast<const char*>(text),
+                               strnlen(reinterpret_cast<const char*>(text), 60))
+                 : "?";
+  }
+  REXLOG_INFO("Kit: check {:08X} [{}] op{} -> {}", op, path,
+              rex::memory::load_and_swap<uint32_t>(base + op + 0x20), result);
+}
+}  // namespace
+#endif
+
 void NightmareCheckHook(PPCRegister& r3, PPCRegister& r31) {
+#if defined(SKYLANDERS_DEVKIT)
+  if (REXCVAR_GET(kit_log_checks)) {
+    LogCheck(rex::system::kernel_state()->memory()->virtual_membase(), r31.u32, r3.s32);
+  }
+#endif
   const bool nightmare_on = REXCVAR_GET(nightmare_from_start);
   const bool boost_on = REXCVAR_GET(cheat_traptanium_boost);
   const bool attribute_on = trapteamrecomp::attribute_cheats::AnyOn();
   // figure_intro_hook.cpp: the magic moment's waits, true or false (it times the magic moment).
   const bool intro_on = trapteamrecomp::figure_intro::On();
-  // Nightmare only needs the checks that came out false; the boost's == 0 check comes out true.
-  if (!(nightmare_on && r3.s32 < 1) && !boost_on && !attribute_on && !intro_on) return;
+  const bool skip_on = REXCVAR_GET(skip_talks);
+  // Nightmare only needs the checks that came out false; the boost's == 0 check comes out true, and
+  // so does skip talks' "skippable == 0".
+  if (!(nightmare_on && r3.s32 < 1) && !boost_on && !attribute_on && !intro_on && !skip_on) return;
   uint8_t* base = rex::system::kernel_state()->memory()->virtual_membase();
   // Every check that comes out false passes here, many a frame, and the walk to the names asks
   // the memory's protection a dozen times (system calls): with the option on, the game slowed down
@@ -124,9 +214,10 @@ void NightmareCheckHook(PPCRegister& r3, PPCRegister& r31) {
   // it is on (`known` bits), so an option that is off costs nothing.
   struct Seen {
     uint64_t sides;
-    uint8_t known;  // 1 nightmare, 2 master_switch, 4 attribute, 8 intro
+    uint8_t known;  // 1 nightmare, 2 master_switch, 4 attribute, 8 intro, 16 skippable
     bool nightmare;
     bool intro;  // figure_intro::IsIntroWait
+    uint32_t skippable;  // SkippableCheckOperator
     uint32_t master_switch;  // MasterSwitchCheckOperator
     trapteamrecomp::attribute_cheats::Kind attribute;
   };
@@ -137,7 +228,7 @@ void NightmareCheckHook(PPCRegister& r3, PPCRegister& r31) {
   auto it = seen.find(op);
   if (it == seen.end() || it->second.sides != sides) {
     if (seen.size() > 65536) seen.clear();
-    it = seen.insert_or_assign(op, Seen{sides, 0, false, false, 0, trapteamrecomp::attribute_cheats::Kind::kNone})
+    it = seen.insert_or_assign(op, Seen{sides, 0, false, false, 0, 0, trapteamrecomp::attribute_cheats::Kind::kNone})
              .first;
   }
   Seen& entry = it->second;
@@ -148,6 +239,36 @@ void NightmareCheckHook(PPCRegister& r3, PPCRegister& r31) {
   if (intro_on && entry.intro) {
     trapteamrecomp::figure_intro::Apply(r3);
     return;
+  }
+  if (skip_on) {
+    if (!(entry.known & 16)) {
+      entry.skippable = SkippableCheckOperator(base, op);
+      entry.known |= 16;
+    }
+    if (entry.skippable) {
+      const uint64_t skippable = (entry.skippable & 0xFF) == 4 ? 1 : 0;  // > 0 true, == 0 false
+      if (entry.skippable & 0x100) {
+        // Read after a player's press; at most a line every 2 seconds, in case a scene asks on more
+        // frames.
+        static std::atomic<int64_t> last_ms{-10000};
+        const int64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(
+                                std::chrono::steady_clock::now().time_since_epoch())
+                                .count();
+        if (now - last_ms.load() >= 2000) {
+          last_ms.store(now);
+          REXLOG_INFO("Skip talks: a cutscene's skip check ({})",
+                      r3.u64 == skippable ? "the game allows it anyway" : "the game alone wouldn't");
+        }
+      } else {
+        static bool logged_skip = false;
+        if (!logged_skip) {
+          logged_skip = true;
+          REXLOG_INFO("Skip talks: a talk's lines can be skipped");
+        }
+      }
+      r3.u64 = skippable;
+      return;
+    }
   }
   if (nightmare_on && r3.s32 < 1 && !(entry.known & 1)) {
     entry.nightmare = IsNightmareCheck(base, op);
