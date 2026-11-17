@@ -373,6 +373,13 @@ SettingsPage GamePage() {
                            "Er\xC3\xB6" "ffnungsfilm \xC3\xBC" "berspringen",
                            "Skips the long movie at the start of a new game.",
                            "\xC3\x9C" "berspringt den langen Film beim Start eines neuen Spiels."});
+  // hooks/nightmare_hook.cpp: the cutscenes' developer switch read as on (as SSA's "Skip talks").
+  page.settings.push_back({"skip_talks", "Skip talks", "Gespr\xC3\xA4" "che \xC3\xBC" "berspringen",
+                           "Every cutscene in the levels can be skipped, also the ones the game only lets "
+                           "you skip when you play a level again.",
+                           "Jede Zwischensequenz in den Leveln l\xC3\xA4" "sst sich \xC3\xBC" "berspringen, "
+                           "auch die, die das Spiel sonst erst beim erneuten Spielen eines Levels "
+                           "\xC3\xBC" "berspringen l\xC3\xA4" "sst."});
   page.settings.push_back(
       {"figure_intro_seconds", "Skylander intro", "Skylander-Vorstellung",
        "When a Skylander comes onto the portal, the game shows it with its name before you can "
