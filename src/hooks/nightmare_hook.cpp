@@ -118,9 +118,18 @@ uint32_t SkippableCheckOperator(uint8_t* base, uint32_t op) {
       load_and_swap<uint32_t>(base + literal + 0x24) != 0) {
     return 0;
   }
-  const uint32_t last = LastItem(base, op + 0x1C);
-  const uint32_t owner = trapteamrecomp::script::StackItem(base, op + 0x1C, -2);
-  if (!last || !owner || !NameIs(base, last + 0x1C, "skippable")) return 0;
+  // The path's shape first, by direct reads of what the game has just used (as in Giants d00d79c, where the
+  // name compares on every "== 0" check cost 13-28 FPS): both checks have a path of three variables (type
+  // 821098A0 in the Level_302 snapshot), "current cutscene.cutscene definition.skippable" and
+  // "dialogue ui.text data.skippable". Only those get the name compares (system calls).
+  const uint32_t path = load_and_swap<uint32_t>(base + op + 0x1C);
+  const uint32_t count = path ? load_and_swap<uint32_t>(base + path + 8) : 0;
+  const uint32_t items = path ? load_and_swap<uint32_t>(base + path + 0x14) : 0;
+  if (count != 3 || !items) return 0;
+  const uint32_t owner = load_and_swap<uint32_t>(base + items + 4);
+  const uint32_t last = load_and_swap<uint32_t>(base + items + 8);
+  if (!last || !owner || load_and_swap<uint32_t>(base + last) != 0x821098A0) return 0;
+  if (!NameIs(base, last + 0x1C, "skippable")) return 0;
   if (NameIs(base, owner + 0x1C, "cutscene definition")) return oper | 0x100;
   if (NameIs(base, owner + 0x1C, "text data")) return oper;
   return 0;
