@@ -51,21 +51,25 @@ REXCVAR_DEFINE_BOOL(nightmare_from_start, false, "Game",
 // Manage" checks that switch against 0. With this on, those checks come out as if it were on.
 // Measured 2026-11-03 in Level_302 with Enigma: his hits on the enemies 30 / 66 / 138 without it,
 // 45 / 99 / 207 with it (1.5 times), and his orb glows white and bigger.
-// The owner's #18 (2026-11-17, as in Spyro's Adventure): talks and cutscenes skippable. Trap Team's
-// cutscene update (permanent\global.bld; decoded 2026-11-17 from a heap snapshot of the Academy, kit
-// tt_script_ops.py) handles a skip request with
+// The owner's #18 (2026-11-17, as in Spyro's Adventure): talks and cutscenes skippable with the skip
+// button. Trap Team's cutscene update (permanent\global.bld; decoded 2026-11-17 from a heap snapshot
+// of the Academy, kit tt_script_ops.py) handles a skip request (a player's press) with
 //
 //   check [current cutscene.cutscene definition.skippable] == 0       (skip the next 13 ops if false)
 //     check [a developer flag] != 0, then [DEBUG - allow all cutscenes to skip] != 0: skippable
-//     check [current cutscene.cutscene definition.skippable in replays] != 0 and the adventure's
+//     check [current cutscene.cutscene definition.skippable in replays] > 0 and the adventure's
 //       "complete": skippable on a replay
 //     else the request is turned down
 //
-// With skip_talks on, a check of a cutscene definition's "skippable" against the literal 0 comes out
-// as if it were 1 (== 0 false, != 0 true), so every scene takes the skippable path; the scene's own
-// data stays as it is. (The developer switch alone doesn't do: its check only runs behind the flag.)
+// and a talk's line the same way (`check [dialogue ui.text data.skippable] == 0` jumps past the skip;
+// seen in the Level_302 snapshot, kit tt_checks_named.py). With skip_talks on, a check of a cutscene
+// definition's or a talk line's "skippable" against the literal 0 comes out as if it were 1 (== 0
+// false, > 0 true), so a press skips every scene and line; nothing is skipped without a press, and
+// the scene's own data stays as it is. (The developer switch alone doesn't do: its check only runs
+// behind the flag.)
 REXCVAR_DEFINE_BOOL(skip_talks, false, "Game",
-                    "Every cutscene can be skipped, also those the game only lets you skip on a replay");
+                    "Every cutscene and talk can be skipped, also those the game only lets you skip "
+                    "on a replay");
 REXCVAR_DEFINE_BOOL(cheat_traptanium_boost, false, "Extras",
                     "Trap Masters' Traptanium boost always on: their weapon glows and grows, and their "
                     "hits do 1.5 times the damage (achievements don't unlock while it's on)");
@@ -99,8 +103,8 @@ bool IsNightmareCheck(uint8_t* base, uint32_t op) {
   return allow && NameIs(base, allow + 0x1C, "allow nightmare");
 }
 
-// A check of a cutscene definition's "skippable" against the literal 0 (skip_talks): its operator
-// (1 ==, 4 !=), or 0 for any other check.
+// A check of a cutscene definition's or a talk line's "skippable" against the literal 0 (skip_talks):
+// its operator (1 ==, 4 >), or 0 for any other check.
 uint32_t SkippableCheckOperator(uint8_t* base, uint32_t op) {
   using rex::memory::load_and_swap;
   const uint32_t oper = load_and_swap<uint32_t>(base + op + 0x20);  // the op's own fields
@@ -114,7 +118,7 @@ uint32_t SkippableCheckOperator(uint8_t* base, uint32_t op) {
   const uint32_t last = LastItem(base, op + 0x1C);
   const uint32_t owner = trapteamrecomp::script::StackItem(base, op + 0x1C, -2);
   if (!last || !owner || !NameIs(base, last + 0x1C, "skippable") ||
-      !NameIs(base, owner + 0x1C, "cutscene definition")) {
+      !(NameIs(base, owner + 0x1C, "cutscene definition") || NameIs(base, owner + 0x1C, "text data"))) {
     return 0;
   }
   return oper;
@@ -234,9 +238,9 @@ void NightmareCheckHook(PPCRegister& r3, PPCRegister& r31) {
       static bool logged_skip = false;
       if (!logged_skip) {
         logged_skip = true;
-        REXLOG_INFO("Skip talks: a cutscene's skippable check read as skippable");
+        REXLOG_INFO("Skip talks: a cutscene's or talk's skippable check read as skippable");
       }
-      r3.u64 = entry.skippable == 4 ? 1 : 0;  // != 0 true, == 0 false
+      r3.u64 = entry.skippable == 4 ? 1 : 0;  // > 0 true, == 0 false
       return;
     }
   }
