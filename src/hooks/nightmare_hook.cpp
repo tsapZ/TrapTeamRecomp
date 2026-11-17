@@ -27,6 +27,8 @@
 // the save keeps its own flag, so with the setting off again Nightmare is locked until the game
 // unlocks it.
 
+#include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <cstring>
 #include <unordered_map>
@@ -104,7 +106,8 @@ bool IsNightmareCheck(uint8_t* base, uint32_t op) {
 }
 
 // A check of a cutscene definition's or a talk line's "skippable" against the literal 0 (skip_talks):
-// its operator (1 ==, 4 >), or 0 for any other check.
+// its operator (1 ==, 4 >), plus 0x100 for a cutscene's (a talk line's check runs every frame of the
+// talk, a cutscene's after a press), or 0 for any other check.
 uint32_t SkippableCheckOperator(uint8_t* base, uint32_t op) {
   using rex::memory::load_and_swap;
   const uint32_t oper = load_and_swap<uint32_t>(base + op + 0x20);  // the op's own fields
@@ -117,11 +120,10 @@ uint32_t SkippableCheckOperator(uint8_t* base, uint32_t op) {
   }
   const uint32_t last = LastItem(base, op + 0x1C);
   const uint32_t owner = trapteamrecomp::script::StackItem(base, op + 0x1C, -2);
-  if (!last || !owner || !NameIs(base, last + 0x1C, "skippable") ||
-      !(NameIs(base, owner + 0x1C, "cutscene definition") || NameIs(base, owner + 0x1C, "text data"))) {
-    return 0;
-  }
-  return oper;
+  if (!last || !owner || !NameIs(base, last + 0x1C, "skippable")) return 0;
+  if (NameIs(base, owner + 0x1C, "cutscene definition")) return oper | 0x100;
+  if (NameIs(base, owner + 0x1C, "text data")) return oper;
+  return 0;
 }
 
 // A check of the Guardian Crystal powerup's master switch against the literal 0 ("guardian crystal
@@ -235,12 +237,27 @@ void NightmareCheckHook(PPCRegister& r3, PPCRegister& r31) {
       entry.known |= 16;
     }
     if (entry.skippable) {
-      static bool logged_skip = false;
-      if (!logged_skip) {
-        logged_skip = true;
-        REXLOG_INFO("Skip talks: a cutscene's or talk's skippable check read as skippable");
+      const uint64_t skippable = (entry.skippable & 0xFF) == 4 ? 1 : 0;  // > 0 true, == 0 false
+      if (entry.skippable & 0x100) {
+        // Read after a player's press; at most a line every 2 seconds, in case a scene asks on more
+        // frames.
+        static std::atomic<int64_t> last_ms{-10000};
+        const int64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(
+                                std::chrono::steady_clock::now().time_since_epoch())
+                                .count();
+        if (now - last_ms.load() >= 2000) {
+          last_ms.store(now);
+          REXLOG_INFO("Skip talks: a cutscene's skip check ({})",
+                      r3.u64 == skippable ? "the game allows it anyway" : "the game alone wouldn't");
+        }
+      } else {
+        static bool logged_skip = false;
+        if (!logged_skip) {
+          logged_skip = true;
+          REXLOG_INFO("Skip talks: a talk's lines can be skipped");
+        }
       }
-      r3.u64 = entry.skippable == 4 ? 1 : 0;  // > 0 true, == 0 false
+      r3.u64 = skippable;
       return;
     }
   }
