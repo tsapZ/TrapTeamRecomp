@@ -73,6 +73,7 @@ set(TRAPTEAMRECOMP_SOURCES
     src/hooks/scene_size_hook.cpp
     src/hooks/ultrawide_hook.cpp
     src/hooks/script_cheats_hook.cpp
+    src/hooks/soul_gem_hook.cpp
     src/hooks/where_hook.cpp
 )
 
