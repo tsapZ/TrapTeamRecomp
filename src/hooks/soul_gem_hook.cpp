@@ -1,5 +1,10 @@
-// A Soul Gem picked up, from Trap Team's own scripts (Core of Light #71, the Soul Gem run). For now only a log line, to
+// A Soul Gem picked up, from Trap Team's own scripts (Core of Light #71, the Soul Gem run). For now only log lines, to
 // be checked against a real pickup before the run uses it.
+//
+// 2026-11-24: a player's three real pickups in Level_313_Tutorial (TT 0.6.0-beta.7: three "Soul Gem movie" lines) gave
+// no "Soul Gem (script)" line, so Trap Team's gem doesn't use "Check Soul Gem Achievement" as Giants' does. The other
+// gem macros of the level scripts (the Academy snapshot's names) are logged now, each use with the level, a few
+// times each per session: the next report with a pickup says which one is the pickup.
 //
 // Giants' gem object (ChampionUpgradeToken.ai) sets the gem collected with "Save - Collection Get/Set - Champion Token"
 // and right after it uses "System - Achievements - Check Soul Gem Achievement", whatever the player answers at the
@@ -34,11 +39,23 @@
 
 namespace {
 
-constexpr char kGemMacro[] = "System - Achievements - Check Soul Gem Achievement";
+// The gem macros by name (Trap Team's Academy snapshot, runs\kit\tt_image): Giants' pickup signal first, then the
+// level objective's count, the gem's map tag, the gem toy's creation and the preview's data-mining event.
+constexpr const char* kGemMacros[] = {
+    "System - Achievements - Check Soul Gem Achievement",
+    "Objective - Soul Gems Collected",
+    "Remove Tag - Soul Gem",
+    "Create Toy - Soul Gem",
+    "System - Data Mining - Event - Soul Gem Video Start",
+};
+constexpr int kGemMacroCount = int(sizeof(kGemMacros) / sizeof(kGemMacros[0]));
 
-// The gem macro's definitions once seen (the snapshots had two: global and per level), and the others looked at,
-// by a hash of the definition's address; a slot written over by another one only means one more name read.
-std::array<std::atomic<uint32_t>, 4> g_gem{};
+// The gem macros' definitions once seen (the snapshots had two per macro: global and per level) with their index, and
+// the others looked at, by a hash of the definition's address; a slot written over by another one only means one more
+// name read.
+std::array<std::atomic<uint32_t>, 16> g_gem{};
+std::array<std::atomic<int>, 16> g_gem_index{};
+std::array<std::atomic<int>, kGemMacroCount> g_told{};  // log lines per macro this session
 std::array<std::atomic<uint32_t>, 8192> g_other{};
 
 // The definition's name compared straight, without script_objects.h's checked reads: those ask the system for the
@@ -47,29 +64,39 @@ std::array<std::atomic<uint32_t>, 8192> g_other{};
 // (CoL #71, a player's report 2026-11-21; dev kit A/B 176 -> 110 FPS in the Academy, 145 -> 85 in Level_313). The
 // op is the one the game is running, so its definition and the definition's name are live; a name pointer outside
 // the guest's heap and image is taken as no name. The first byte decides most of them.
-bool NameIsGemMacro(uint8_t* base, uint32_t def) {
+// Which of kGemMacros the definition's name is, or -1. The first bytes decide most of them: all but one start "S" or
+// "O", "R", "C" and the game's other macro names are mostly "Portal - ...", "Minion - ..." and the like.
+int GemMacroOfName(uint8_t* base, uint32_t def) {
   const uint32_t name = rex::memory::load_and_swap<uint32_t>(base + def + 8) & ~1u;  // the tag bit off
-  constexpr uint32_t kSize = uint32_t(sizeof(kGemMacro));                             // with the terminator
-  if (name < 0x40000000u || name > 0xC0000000u - kSize) return false;
+  constexpr uint32_t kMaxSize = 64;  // longer than every kGemMacros entry with its terminator
+  if (name < 0x40000000u || name > 0xC0000000u - kMaxSize) return -1;
   const uint8_t* text = base + name;
-  return text[0] == uint8_t(kGemMacro[0]) && std::memcmp(text, kGemMacro, kSize) == 0;
+  for (int i = 0; i < kGemMacroCount; ++i) {
+    const char* want = kGemMacros[i];
+    if (text[0] == uint8_t(want[0]) && std::memcmp(text, want, std::strlen(want) + 1) == 0) return i;
+  }
+  return -1;
 }
 
-bool IsGemMacro(uint8_t* base, uint32_t def) {
-  for (const auto& g : g_gem) {
-    if (g.load(std::memory_order_relaxed) == def) return true;
+int GemMacro(uint8_t* base, uint32_t def) {
+  for (size_t i = 0; i < g_gem.size(); ++i) {
+    if (g_gem[i].load(std::memory_order_relaxed) == def) return g_gem_index[i].load(std::memory_order_relaxed);
   }
   std::atomic<uint32_t>& other = g_other[(def >> 2) % g_other.size()];
-  if (other.load(std::memory_order_relaxed) == def) return false;
-  if (!NameIsGemMacro(base, def)) {
+  if (other.load(std::memory_order_relaxed) == def) return -1;
+  const int index = GemMacroOfName(base, def);
+  if (index < 0) {
     other.store(def, std::memory_order_relaxed);
-    return false;
+    return -1;
   }
-  for (auto& g : g_gem) {
+  for (size_t i = 0; i < g_gem.size(); ++i) {
     uint32_t empty = 0;
-    if (g.compare_exchange_strong(empty, def)) break;
+    if (g_gem[i].compare_exchange_strong(empty, def)) {
+      g_gem_index[i].store(index, std::memory_order_relaxed);
+      break;
+    }
   }
-  return true;
+  return index;
 }
 
 void MacroUsed(uint8_t* base, uint32_t op) {
@@ -89,9 +116,12 @@ void MacroUsed(uint8_t* base, uint32_t op) {
                      : std::string("?"));
   }
 #endif
-  if (def < 0x10000 || !IsGemMacro(base, def)) return;
-  REXLOG_INFO("Soul Gem (script): picked up in {} (Check Soul Gem Achievement)", skylanders::dev::CurrentLevel());
-  skylanders::dev::LogPlace("Soul Gem picked up");
+  const int index = def < 0x10000 ? -1 : GemMacro(base, def);
+  if (index < 0) return;
+  // At most 40 lines per macro and session: one that runs every frame shows itself without filling the log.
+  if (g_told[index].fetch_add(1, std::memory_order_relaxed) >= 40) return;
+  REXLOG_INFO("Soul Gem (script): '{}' in {}", kGemMacros[index], skylanders::dev::CurrentLevel());
+  if (index == 0 || index == 1 || index == 2) skylanders::dev::LogPlace("Soul Gem macro");
 }
 
 }  // namespace
